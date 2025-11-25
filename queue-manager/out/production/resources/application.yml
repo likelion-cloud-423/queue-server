@@ -1,0 +1,8 @@
+spring:
+  application:
+    name: queue-manager
+server:
+  port: 8081
+
+queue:
+  polling-interval-ms: 5000

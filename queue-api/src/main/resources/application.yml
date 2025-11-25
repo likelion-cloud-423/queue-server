@@ -1,0 +1,5 @@
+spring:
+  application:
+    name: queue-api
+server:
+  port: 8080
