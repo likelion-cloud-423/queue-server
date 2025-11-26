@@ -1,0 +1,61 @@
+services:
+  queue-api:
+    container_name: queue-api
+    image: queue-api:latest
+    build:
+      context: .
+      dockerfile: queue-api/Dockerfile
+    environment:
+      SPRING_DATA_REDIS_HOST: valkey
+      SPRING_DATA_REDIS_PORT: 6379
+    depends_on:
+      valkey:
+        condition: service_started
+    ports:
+      - "8080:8080"
+    networks:
+      - queue-net
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/actuator/health"]
+      start_period: 10s
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  queue-manager:
+    container_name: queue-manager
+    image: queue-manager:latest
+    build:
+      context: .
+      dockerfile: queue-manager/Dockerfile
+    environment:
+      SPRING_DATA_REDIS_HOST: valkey
+      SPRING_DATA_REDIS_PORT: 6379
+    depends_on:
+      valkey:
+        condition: service_started
+    ports:
+      - "8081:8081"
+    networks:
+      - queue-net
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8081/actuator/health"]
+      start_period: 10s
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  valkey:
+    image: valkey/valkey:7.2-alpine
+    command: ["valkey-server", "--appendonly", "yes"]
+    volumes:
+      - valkey-data:/data
+    networks:
+      - queue-net
+
+volumes:
+  valkey-data:
+
+networks:
+  queue-net:
+    driver: bridge
