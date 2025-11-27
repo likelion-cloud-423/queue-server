@@ -3,7 +3,7 @@ services:
     container_name: queue-api
     image: queue-api:latest
     build:
-      context: .
+      context: ./queue
       dockerfile: queue-api/Dockerfile
     environment:
       SPRING_DATA_REDIS_HOST: valkey
@@ -26,7 +26,7 @@ services:
     container_name: queue-manager
     image: queue-manager:latest
     build:
-      context: .
+      context: ./queue
       dockerfile: queue-manager/Dockerfile
     environment:
       SPRING_DATA_REDIS_HOST: valkey
@@ -34,8 +34,6 @@ services:
     depends_on:
       valkey:
         condition: service_started
-    ports:
-      - "8081:8081"
     networks:
       - queue-net
     healthcheck:
@@ -44,6 +42,20 @@ services:
       interval: 30s
       timeout: 5s
       retries: 3
+
+  chat-server:
+    container_name: chat-server
+    image: chat-server:latest
+    build:
+      context: ./chat-server
+      dockerfile: Dockerfile
+    environment:
+      ConnectionStrings__Redis: "valkey:6379"
+      ASPNETCORE_ENVIRONMENT: "Development"
+    ports:
+      - "8081:8080"
+    networks:
+      - queue-net
 
   valkey:
     image: valkey/valkey:7.2-alpine
