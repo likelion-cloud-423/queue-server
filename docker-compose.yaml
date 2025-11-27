@@ -60,13 +60,24 @@ services:
   valkey:
     image: valkey/valkey:7.2-alpine
     command: ["valkey-server", "--appendonly", "yes"]
-    volumes:
-      - valkey-data:/data
     networks:
       - queue-net
 
-volumes:
-  valkey-data:
+  valkey-dashboard:
+    container_name: valkey-dashboard
+    image: redis/redisinsight:latest
+    depends_on:
+      valkey:
+        condition: service_started
+    environment:
+      RI_ACCEPT_TERMS_AND_CONDITIONS: true
+      RI_DATABASE_MANAGEMENT: false
+      RI_REDIS_HOST: valkey
+      RI_REDIS_PORT: 6379
+    ports:
+      - "8082:5540"
+    networks:
+      - queue-net
 
 networks:
   queue-net:
