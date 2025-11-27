@@ -10,6 +10,7 @@ COPY build.gradle build.gradle
 # Copy module sources
 COPY queue-manager queue-manager
 COPY queue-api queue-api
+COPY queue-common queue-common
 
 RUN chmod +x gradlew && ./gradlew :queue-manager:bootJar --no-daemon
 

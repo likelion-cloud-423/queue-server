@@ -1,8 +1,9 @@
 spring:
   application:
     name: queue-manager
+  data:
+    redis:
+      host: localhost
+      port: 6379
 server:
   port: 8081
-
-queue:
-  polling-interval-ms: 5000
