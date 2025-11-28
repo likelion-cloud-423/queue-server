@@ -13,8 +13,8 @@ jobs:
     strategy:
       matrix:
         service:
-          - { name: "queue-api", path: "queue-api", image: "queue-api" }
-          - { name: "queue-manager", path: "queue-manager", image: "queue-manager" }
+          - { name: "queue-api", path: "queue/queue-api", image: "queue-api" }
+          - { name: "queue-manager", path: "queue/queue-manager", image: "queue-manager" }
           - { name: "chat-server", path: "chat-server", image: "chat-server" }
 
     steps:
@@ -50,20 +50,16 @@ jobs:
           cd ${{ matrix.service.path }}
           ./gradlew clean build -x test
 
-      - name: Build Docker image
-        run: |
-          IMAGE_URI=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-northeast-2.amazonaws.com/${{ matrix.service.image }}:latest
-          echo "Building Docker image for ${{ matrix.service.name }} -> $IMAGE_URI"
-          docker build -t $IMAGE_URI ./${{ matrix.service.path }}
-
       - name: Ensure ECR repository exists
         run: |
           aws ecr describe-repositories --repository-names ${{ matrix.service.image }} || \
           aws ecr create-repository --repository-name ${{ matrix.service.image }}
 
-      - name: Push Docker image
+      - name: Build and Push Docker image
         run: |
           IMAGE_URI=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-northeast-2.amazonaws.com/${{ matrix.service.image }}:latest
+          echo "Building Docker image for ${{ matrix.service.name }} -> $IMAGE_URI"
+          docker build -t $IMAGE_URI ./${{ matrix.service.path }}
           echo "Pushing Docker image $IMAGE_URI"
           docker push $IMAGE_URI
 
