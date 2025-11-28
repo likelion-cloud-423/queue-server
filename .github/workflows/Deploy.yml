@@ -31,7 +31,7 @@ jobs:
           declare -A SERVICES
           SERVICES["queue-api"]="./queue/queue-api/Dockerfile ./queue"
           SERVICES["queue-manager"]="./queue/queue-manager/Dockerfile ./queue"
-          SERVICES["chat-server"]="./chat-server/Dockerfile ./chat-server"
+          SERVICES["chat-server"]="./chat-server/Dockerfile ./queue"
           TAG="${COMMIT_SHA::7}"
 
           for SERVICE in "${!SERVICES[@]}"; do
@@ -70,10 +70,10 @@ jobs:
           for SERVICE in $SERVICES; do
             IMAGE="$REGISTRY/$SERVICE:$TAG"
 
-            echo "Updating Deployment for $SERVICE to image tag $TAG..."
+            echo "Updating Deployment for $SERVICE to image tag $TAG in queue-system..."
             
-            kubectl set image deployment/$SERVICE $SERVICE=$IMAGE
+            kubectl set image deployment/$SERVICE $SERVICE=$IMAGE -n queue-system
             
             echo "Waiting for rollout status of $SERVICE ..."
-            kubectl rollout status deployment/$SERVICE --timeout=5m
+            kubectl rollout status deployment/$SERVICE -n queue-system --timeout=5m
           done
