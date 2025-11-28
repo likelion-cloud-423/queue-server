@@ -7,3 +7,9 @@ spring:
       port: 6379
 server:
   port: 8081
+queue:
+  manager:
+    schedule-interval: 1s
+    ticket-ttl: 60s
+    batch-limit: 100
+    default-soft-cap: 1000

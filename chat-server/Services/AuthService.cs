@@ -1,6 +1,9 @@
+using ChatServer.Repositories;
 using Microsoft.AspNetCore.Http;
 
-namespace ChatServer;
+namespace ChatServer.Services;
+
+public sealed record User(string UserId, string Nickname);
 
 public sealed class AuthService(ITicketRepository ticketRepository)
 {

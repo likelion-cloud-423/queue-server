@@ -1,13 +1,22 @@
+using System.Buffers;
 using System.Collections.Concurrent;
 using System.Net.WebSockets;
 using System.Text;
 using System.Text.Json;
-using System.Text.Json.Serialization.Metadata;
+using ChatServer.Repositories;
 
-namespace ChatServer;
+namespace ChatServer.Services;
 
-public class ChatService(ILogger<ChatService> logger) : BackgroundService
+public class ChatService(
+    ILogger<ChatService> logger,
+    ITicketRepository ticketRepository,
+    IServerStatusService serverStatusService) : BackgroundService
 {
+    private const int ReceiveBufferSize = 4 * 1024;
+    private static readonly JsonSerializerOptions s_serializerOptions = new(JsonSerializerDefaults.Web)
+    {
+        PropertyNameCaseInsensitive = true
+    };
     private readonly ConcurrentDictionary<string, ClientConnection> _clients = new(StringComparer.Ordinal);
     private readonly TimeSpan _idleTimeout = TimeSpan.FromMinutes(2);
 
@@ -15,6 +24,8 @@ public class ChatService(ILogger<ChatService> logger) : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        await UpdateServerStatusAsync(stoppingToken);
+
         // Periodically scan for idle clients and close their sockets.
         while (!stoppingToken.IsCancellationRequested)
         {
@@ -39,7 +50,7 @@ public class ChatService(ILogger<ChatService> logger) : BackgroundService
         }
     }
 
-    public async Task HandleClientAsync(WebSocket socket, User user, CancellationToken cancellationToken)
+    public async Task HandleClientAsync(WebSocket socket, User user, string ticketId, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(user);
 
@@ -54,6 +65,9 @@ public class ChatService(ILogger<ChatService> logger) : BackgroundService
         }
 
         logger.LogInformation("Client {ClientId} ({UserId}) connected.", clientId, user.UserId);
+
+        await ticketRepository.ConsumeTicketAsync(ticketId, user.UserId, cancellationToken);
+        await UpdateServerStatusAsync(cancellationToken);
 
         await BroadcastSystemMessageAsync(
             message: $"{connection.User.Nickname} 님이 입장했습니다.",
@@ -87,48 +101,68 @@ public class ChatService(ILogger<ChatService> logger) : BackgroundService
     private async Task ReceiveLoopAsync(ClientConnection connection, CancellationToken cancellationToken)
     {
         var socket = connection.Socket;
-        var buffer = new byte[4 * 1024];
+        var buffer = ArrayPool<byte>.Shared.Rent(ReceiveBufferSize);
+        var messageBuffer = new ArrayBufferWriter<byte>(ReceiveBufferSize);
 
-        while (socket.State == WebSocketState.Open && !cancellationToken.IsCancellationRequested)
+        try
         {
-            await using var ms = new MemoryStream();
-            WebSocketReceiveResult? result;
-
-            do
+            while (socket.State == WebSocketState.Open && !cancellationToken.IsCancellationRequested)
             {
-                result = await socket.ReceiveAsync(buffer, cancellationToken);
+                messageBuffer.Clear();
+                WebSocketReceiveResult result;
 
-                if (result.MessageType == WebSocketMessageType.Close)
+                do
                 {
-                    return;
+                    result = await socket.ReceiveAsync(buffer, cancellationToken);
+
+                    if (result.MessageType == WebSocketMessageType.Close)
+                    {
+                        return;
+                    }
+
+                    if (result.Count > 0)
+                    {
+                        messageBuffer.Write(buffer.AsSpan(0, result.Count));
+                    }
+                } while (!result.EndOfMessage);
+
+                if (result.MessageType != WebSocketMessageType.Text)
+                {
+                    continue;
                 }
 
-                ms.Write(buffer, 0, result.Count);
-            } while (!result.EndOfMessage);
+                connection.Touch();
 
-            if (result.MessageType != WebSocketMessageType.Text)
-            {
-                continue;
+                var payloadSpan = messageBuffer.WrittenSpan;
+                string? payloadText = null;
+                if (logger.IsEnabled(LogLevel.Debug))
+                {
+                    payloadText = Encoding.UTF8.GetString(payloadSpan);
+                    logger.LogDebug("{Payload}", payloadText);
+                }
+
+                var clientMessage = DeserializeClientMessage(payloadSpan);
+
+                if (clientMessage is null)
+                {
+                    payloadText ??= Encoding.UTF8.GetString(payloadSpan);
+                    logger.LogWarning("잘못된 메시지 형식: {Payload}", payloadText);
+                    continue;
+                }
+
+                await HandleClientMessageAsync(connection, clientMessage, cancellationToken);
             }
-
-            connection.Touch();
-
-            var payload = Encoding.UTF8.GetString(ms.ToArray());
-            var clientMessage = DeserializeClientMessage(payload);
-
-            if (clientMessage is null)
-            {
-                logger.LogWarning("잘못된 메시지 형식: {Payload}", payload);
-                continue;
-            }
-
-            await HandleClientMessageAsync(connection, clientMessage, cancellationToken);
+        }
+        finally
+        {
+            ArrayPool<byte>.Shared.Return(buffer);
         }
     }
 
-    private async Task HandleClientMessageAsync(ClientConnection connection, WebSocketMessage<JsonElement> message, CancellationToken cancellationToken)
+    private async Task HandleClientMessageAsync(ClientConnection connection, WebSocketMessage<JsonElement> message,
+        CancellationToken cancellationToken)
     {
-        var type = message.Type?.Trim() ?? string.Empty;
+        var type = message.Type.Trim();
 
         switch (type)
         {
@@ -146,7 +180,7 @@ public class ChatService(ILogger<ChatService> logger) : BackgroundService
 
     private async Task HandleMessageSendAsync(ClientConnection connection, JsonElement payloadElement, CancellationToken cancellationToken)
     {
-        var payload = DeserializePayload(payloadElement, AppJsonSerializerContext.Default.MessageSendPayload);
+        var payload = DeserializePayload<MessageSendPayload>(payloadElement);
         if (payload is null || string.IsNullOrWhiteSpace(payload.Message))
         {
             return;
@@ -160,11 +194,11 @@ public class ChatService(ILogger<ChatService> logger) : BackgroundService
         await BroadcastMessageReceiveAsync(outbound, cancellationToken);
     }
 
-    private static TPayload? DeserializePayload<TPayload>(JsonElement element, JsonTypeInfo<TPayload> typeInfo)
+    private static TPayload? DeserializePayload<TPayload>(JsonElement element)
     {
         try
         {
-            return element.Deserialize(typeInfo);
+            return element.Deserialize<TPayload>(s_serializerOptions);
         }
         catch (JsonException)
         {
@@ -172,11 +206,11 @@ public class ChatService(ILogger<ChatService> logger) : BackgroundService
         }
     }
 
-    private static WebSocketMessage<JsonElement>? DeserializeClientMessage(string payload)
+    private static WebSocketMessage<JsonElement>? DeserializeClientMessage(ReadOnlySpan<byte> payload)
     {
         try
         {
-            return JsonSerializer.Deserialize(payload, AppJsonSerializerContext.Default.WebSocketMessageJsonElement);
+            return JsonSerializer.Deserialize<WebSocketMessage<JsonElement>>(payload, s_serializerOptions);
         }
         catch (JsonException)
         {
@@ -187,42 +221,41 @@ public class ChatService(ILogger<ChatService> logger) : BackgroundService
     private Task BroadcastMessageReceiveAsync(MessageReceivePayload message, CancellationToken cancellationToken)
     {
         var envelope = new WebSocketMessage<MessageReceivePayload>(WebSocketMessageTypes.MessageReceive, message);
-        return BroadcastAsync(envelope, AppJsonSerializerContext.Default.WebSocketMessageMessageReceivePayload, cancellationToken);
+        return BroadcastAsync(envelope, cancellationToken);
     }
 
     private Task SendSystemMessageAsync(ClientConnection connection, string message, CancellationToken cancellationToken)
     {
         var payload = new SystemMessageReceivePayload(DateTime.UtcNow, message);
         var envelope = new WebSocketMessage<SystemMessageReceivePayload>(WebSocketMessageTypes.SystemMessageReceive, payload);
-        return SendAsync(connection, envelope, AppJsonSerializerContext.Default.WebSocketMessageSystemMessageReceivePayload, cancellationToken);
+        return SendAsync(connection, envelope, cancellationToken);
     }
 
     private Task SendServerStatusResponseAsync(ClientConnection connection, CancellationToken cancellationToken)
     {
         var payload = new ServerStatusResponsePayload(ClientCount);
         var envelope = new WebSocketMessage<ServerStatusResponsePayload>(WebSocketMessageTypes.ServerStatusResponse, payload);
-        return SendAsync(connection, envelope, AppJsonSerializerContext.Default.WebSocketMessageServerStatusResponsePayload, cancellationToken);
+        return SendAsync(connection, envelope, cancellationToken);
     }
 
     private Task BroadcastSystemMessageAsync(string message, CancellationToken cancellationToken)
     {
         var payload = new SystemMessageReceivePayload(DateTime.UtcNow, message);
         var envelope = new WebSocketMessage<SystemMessageReceivePayload>(WebSocketMessageTypes.SystemMessageReceive, payload);
-        return BroadcastAsync(envelope, AppJsonSerializerContext.Default.WebSocketMessageSystemMessageReceivePayload, cancellationToken);
+        return BroadcastAsync(envelope, cancellationToken);
     }
 
     private async Task SendAsync<TPayload>(
-       ClientConnection connection,
-       WebSocketMessage<TPayload> message,
-       JsonTypeInfo<WebSocketMessage<TPayload>> typeInfo,
-       CancellationToken cancellationToken)
+        ClientConnection connection,
+        WebSocketMessage<TPayload> message,
+        CancellationToken cancellationToken)
     {
         if (connection.Socket.State != WebSocketState.Open)
         {
             return;
         }
 
-        var serialized = JsonSerializer.Serialize(message, typeInfo);
+        var serialized = JsonSerializer.Serialize(message, s_serializerOptions);
         var buffer = Encoding.UTF8.GetBytes(serialized);
         var segment = new ArraySegment<byte>(buffer);
 
@@ -262,9 +295,9 @@ public class ChatService(ILogger<ChatService> logger) : BackgroundService
         }
     }
 
-    private async Task BroadcastAsync<TPayload>(WebSocketMessage<TPayload> message, JsonTypeInfo<WebSocketMessage<TPayload>> typeInfo, CancellationToken cancellationToken)
+    private async Task BroadcastAsync<TPayload>(WebSocketMessage<TPayload> message, CancellationToken cancellationToken)
     {
-        var serialized = JsonSerializer.Serialize(message, typeInfo);
+        var serialized = JsonSerializer.Serialize(message, s_serializerOptions);
         var buffer = Encoding.UTF8.GetBytes(serialized);
         var segment = new ArraySegment<byte>(buffer);
 
@@ -298,7 +331,8 @@ public class ChatService(ILogger<ChatService> logger) : BackgroundService
         }
     }
 
-    private async Task CloseAndRemoveAsync(string userId, WebSocketCloseStatus status, string description, CancellationToken cancellationToken)
+    private async Task CloseAndRemoveAsync(string userId, WebSocketCloseStatus status, string description,
+        CancellationToken cancellationToken)
     {
         if (!_clients.TryRemove(userId, out var connection))
         {
@@ -321,9 +355,24 @@ public class ChatService(ILogger<ChatService> logger) : BackgroundService
             connection.SendLock.Dispose();
             connection.Socket.Dispose();
             logger.LogInformation("Client {ClientId} ({UserId}) disconnected.", connection.Id, userId);
-            await BroadcastSystemMessageAsync(
-                message: $"{connection.User.Nickname} 님이 퇴장했습니다. 현재 접속자 {ClientCount}명",
-                cancellationToken: CancellationToken.None);
+            await UpdateServerStatusAsync(CancellationToken.None);
+            await BroadcastSystemMessageAsync(message: $"{connection.User.Nickname} 님이 퇴장했습니다.", cancellationToken: CancellationToken.None);
+        }
+    }
+
+    private async Task UpdateServerStatusAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            await serverStatusService.PublishAsync(ClientCount, cancellationToken);
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Failed to publish server status snapshot.");
         }
     }
 

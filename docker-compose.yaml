@@ -1,13 +1,15 @@
 services:
   queue-api:
     container_name: queue-api
-    image: queue-api:latest
+    image: queue-api:dev
     build:
       context: ./queue
       dockerfile: queue-api/Dockerfile
     environment:
       SPRING_DATA_REDIS_HOST: valkey
       SPRING_DATA_REDIS_PORT: 6379
+      LOGGING_LEVEL_ROOT: INFO
+      LOGGING_LEVEL_COM_LIKELION_QUEUEAPI: DEBUG
     depends_on:
       valkey:
         condition: service_started
@@ -24,13 +26,15 @@ services:
 
   queue-manager:
     container_name: queue-manager
-    image: queue-manager:latest
+    image: queue-manager:dev
     build:
       context: ./queue
       dockerfile: queue-manager/Dockerfile
     environment:
       SPRING_DATA_REDIS_HOST: valkey
       SPRING_DATA_REDIS_PORT: 6379
+      LOGGING_LEVEL_ROOT: INFO
+      LOGGING_LEVEL_COM_LIKELION_QUEUEMANAGER: DEBUG
     depends_on:
       valkey:
         condition: service_started
@@ -45,12 +49,12 @@ services:
 
   chat-server:
     container_name: chat-server
-    image: chat-server:latest
+    image: chat-server:dev
     build:
       context: ./chat-server
       dockerfile: Dockerfile
     environment:
-      ConnectionStrings__Redis: "valkey:6379"
+      ConnectionStrings__Valkey: "valkey:6379"
       ASPNETCORE_ENVIRONMENT: "Development"
     ports:
       - "8081:8080"
@@ -58,7 +62,7 @@ services:
       - queue-net
 
   valkey:
-    image: valkey/valkey:7.2-alpine
+    image: valkey/valkey:8
     command: ["valkey-server", "--appendonly", "yes"]
     networks:
       - queue-net

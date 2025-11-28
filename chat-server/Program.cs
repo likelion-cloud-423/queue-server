@@ -1,25 +1,25 @@
-using ChatServer;
-using StackExchange.Redis;
 using System.Diagnostics;
 using System.Net;
+using ChatServer.Repositories;
+using ChatServer.Services;
+using StackExchange.Redis;
+using ChatServer;
 
 var builder = WebApplication.CreateSlimBuilder(args);
 
 builder.AddServiceDefaults();
 
-builder.Services.ConfigureHttpJsonOptions(options =>
-{
-    options.SerializerOptions.TypeInfoResolverChain.Insert(0, AppJsonSerializerContext.Default);
-});
+builder.Services.Configure<ChatServerOptions>(builder.Configuration.GetSection(ChatServerOptions.SectionName));
 
-var redisConnectionString = builder.Configuration.GetConnectionString("Redis")
-    ?? throw new InvalidOperationException("Redis connection string is not configured.");
+var valkeyConnectionString = builder.Configuration.GetConnectionString("Valkey")
+                             ?? throw new InvalidOperationException("Valkey connection string is not configured.");
 
-builder.Services.AddSingleton<IConnectionMultiplexer>(_ => ConnectionMultiplexer.Connect(redisConnectionString));
-builder.Services.AddSingleton<ITicketRepository, RedisTicketRepository>();
+builder.Services.AddSingleton<IConnectionMultiplexer>(_ => ConnectionMultiplexer.Connect(valkeyConnectionString));
+builder.Services.AddSingleton<ITicketRepository, TicketRepository>();
 builder.Services.AddSingleton<ChatService>();
 builder.Services.AddHostedService(sp => sp.GetRequiredService<ChatService>());
 builder.Services.AddSingleton<AuthService>();
+builder.Services.AddSingleton<IServerStatusService, ServerStatusService>();
 
 var app = builder.Build();
 
@@ -49,10 +49,7 @@ group.Map("/", async context =>
 
     if (!authResult.IsAuthenticated)
     {
-        var errorResult = Results.Json(
-            authResult.Error,
-            AppJsonSerializerContext.Default.ErrorResponse,
-            statusCode: authResult.StatusCode);
+        var errorResult = Results.Json(authResult.Error, statusCode: authResult.StatusCode);
         await errorResult.ExecuteAsync(context);
         return;
     }
@@ -63,14 +60,13 @@ group.Map("/", async context =>
     {
         var duplicateResult = Results.Json(
             new ErrorResponse("DuplicateConnection", "User already has an active session."),
-            AppJsonSerializerContext.Default.ErrorResponse,
             statusCode: StatusCodes.Status409Conflict);
         await duplicateResult.ExecuteAsync(context);
         return;
     }
 
     using var socket = await context.WebSockets.AcceptWebSocketAsync();
-    await chatService.HandleClientAsync(socket, authResult.User, context.RequestAborted);
+    await chatService.HandleClientAsync(socket, authResult.User, ticketId, context.RequestAborted);
 });
 
 // TODO: TelemetryApi, TelemetryService 로 옮기기

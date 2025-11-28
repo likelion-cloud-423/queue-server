@@ -1,6 +1,6 @@
 using System;
 
-namespace ChatServer;
+namespace ChatServer.Services;
 
 public static class WebSocketMessageTypes
 {
@@ -13,11 +13,12 @@ public static class WebSocketMessageTypes
 
 public sealed record WebSocketMessage<T>(string Type, T Payload);
 
-public sealed record User(string UserId, string Nickname);
-
 public sealed record MessageSendPayload(string Message);
+
 public sealed record MessageReceivePayload(DateTime Timestamp, string Nickname, string Message);
+
 public sealed record SystemMessageReceivePayload(DateTime Timestamp, string Message);
 
 public sealed record ServerStatusRequestPayload();
+
 public sealed record ServerStatusResponsePayload(int ClientCount);

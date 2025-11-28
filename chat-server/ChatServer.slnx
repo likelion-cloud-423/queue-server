@@ -6,6 +6,7 @@
   </Configurations>
   <Folder Name="/Items/">
     <File Path="../docker-compose.yaml" />
+    <File Path="../spec.md" />
   </Folder>
   <Project Path="ChatServer.csproj" />
 </Solution>
