@@ -47,8 +47,7 @@ jobs:
         if: ${{ matrix.service.gradle == true }}
         run: |
           echo "Building ${{ matrix.service.name }}..."
-          cd ${{ matrix.service.path }}
-          ./gradlew clean build -x test
+          ./gradlew :${{ matrix.service.name }}:clean :${{ matrix.service.name }}:build -x test
 
       - name: Ensure ECR repository exists
         run: |
