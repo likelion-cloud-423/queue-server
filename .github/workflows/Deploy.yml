@@ -1,68 +1,43 @@
-name: MonoRepo ECR & EKS CI/CD
+name: Queue Services CI/CD
 
 on:
   push:
-    branches: ["main"]
+    branches: [ "main" ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
 
 jobs:
-  build-and-deploy:
+  build-and-push:
     runs-on: ubuntu-latest
 
     strategy:
       matrix:
         service:
-          - { name: "queue-api", path: "queue/queue-api", image: "queue-api" }
-          - { name: "queue-manager", path: "queue/queue-manager", image: "queue-manager" }
-          - { name: "chat-server", path: "chat-server", image: "chat-server" }
+          - name: queue-api
+            path: queue/queue-api
+            image: queue-api
+          - name: queue-manager
+            path: queue/queue-manager
+            image: queue-manager
 
     steps:
-      - name: Checkout code
+      - name: Checkout
         uses: actions/checkout@v4
 
-   
       - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@v2
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           aws-region: ${{ secrets.AWS_REGION }}
 
       - name: Login to Amazon ECR
         uses: aws-actions/amazon-ecr-login@v2
 
-     
-      - name: Ensure ECR repository exists
-        run: |
-          REPO=${{ matrix.service.image }}
-          aws ecr describe-repositories --repository-names $REPO || \
-          aws ecr create-repository --repository-name $REPO
-
-   
-      - name: Build and Push Docker image
+      - name: Build and push Docker image
         run: |
           IMAGE="${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ matrix.service.image }}:latest"
-
-          echo "Building $IMAGE using context: ./${{ matrix.service.path }}"
-          docker build -t $IMAGE ./${{ matrix.service.path }}
-
-          echo "Pushing $IMAGE"
+          docker build -t $IMAGE -f ./${{ matrix.service.path }}/Dockerfile ./queue
           docker push $IMAGE
-
-   
-      - name: Update kubeconfig
-        run: |
-          aws eks update-kubeconfig \
-            --region ${{ secrets.AWS_REGION }} \
-            --name ${{ secrets.EKS_CLUSTER_NAME }}
-
-     
-      - name: Update EKS Deployment image
-        run: |
-          IMAGE="${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ matrix.service.image }}:latest"
-
-          echo "Updating deployment: ${{ matrix.service.name }}"
-
-          kubectl set image deployment/${{ matrix.service.name }} \
-            ${{ matrix.service.name }}=$IMAGE
-
-          kubectl rollout status deployment/${{ matrix.service.name }}
