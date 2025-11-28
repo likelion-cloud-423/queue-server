@@ -31,6 +31,7 @@ jobs:
       - name: Login to ECR
         uses: aws-actions/amazon-ecr-login@v2
 
+      # Gradle / Java setup only for queue-api
       - name: Setup Java for queue-api
         if: matrix.service.name == 'queue-api'
         uses: actions/setup-java@v4
@@ -45,17 +46,25 @@ jobs:
       - name: Build Spring Boot (queue-api)
         if: matrix.service.name == 'queue-api'
         run: |
+          echo "Building ${matrix.service.name}..."
           cd ${{ matrix.service.path }}
-          ../gradlew clean build -x test
+          ./gradlew clean build -x test
 
       - name: Build Docker image
         run: |
           IMAGE_URI=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-northeast-2.amazonaws.com/${{ matrix.service.image }}:latest
+          echo "Building Docker image for ${{ matrix.service.name }} -> $IMAGE_URI"
           docker build -t $IMAGE_URI ./${{ matrix.service.path }}
+
+      - name: Ensure ECR repository exists
+        run: |
+          aws ecr describe-repositories --repository-names ${{ matrix.service.image }} || \
+          aws ecr create-repository --repository-name ${{ matrix.service.image }}
 
       - name: Push Docker image
         run: |
           IMAGE_URI=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-northeast-2.amazonaws.com/${{ matrix.service.image }}:latest
+          echo "Pushing Docker image $IMAGE_URI"
           docker push $IMAGE_URI
 
       - name: Update kubeconfig
@@ -65,6 +74,12 @@ jobs:
       - name: Deploy to EKS
         run: |
           IMAGE_URI=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-northeast-2.amazonaws.com/${{ matrix.service.image }}:latest
-          kubectl set image deployment/${{ matrix.service.image }} \
-            ${{ matrix.service.image }}=$IMAGE_URI
+          echo "Updating deployment for ${{ matrix.service.name }} with image $IMAGE_URI"
+          # deployment 없으면 apply, 있으면 set image
+          if kubectl get deployment ${{ matrix.service.image }}; then
+            kubectl set image deployment/${{ matrix.service.image }} \
+              ${{ matrix.service.image }}=$IMAGE_URI
+          else
+            kubectl apply -f ./${{ matrix.service.path }}/k8s/deployment.yaml
+          fi
           kubectl rollout status deployment/${{ matrix.service.image }}
