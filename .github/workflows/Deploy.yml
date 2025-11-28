@@ -29,7 +29,7 @@ jobs:
           REPO: ${{ secrets.ECR_REPOSITORY }}
         run: |
           IMAGE=$REGISTRY/$REPO:latest
-          docker build -t $IMAGE -f ./queue/queue-manager/Dockerfile .
+          docker build -t $IMAGE -f ./queue/queue-manager/Dockerfile ./queue
           docker push $IMAGE
 
       - name: Update kubeconfig
