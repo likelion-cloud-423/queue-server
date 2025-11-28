@@ -1,0 +1,46 @@
+name: MonoRepo ECR Docker CI
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        service:
+          - { name: "queue-api", path: "queue/queue-api", image: "queue-api" }
+          - { name: "queue-manager", path: "queue/queue-manager", image: "queue-manager" }
+          - { name: "chat-server", path: "chat-server", image: "chat-server" }
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Ensure ECR repository exists
+        run: |
+          REPO_NAME=${{ matrix.service.image }}
+          aws ecr describe-repositories --repository-names $REPO_NAME || \
+          aws ecr create-repository --repository-name $REPO_NAME
+
+      - name: Build and Push Docker image
+        run: |
+          IMAGE_URI=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ matrix.service.image }}:latest
+          echo "Building Docker image for ${{ matrix.service.name }} -> $IMAGE_URI"
+          docker build -t $IMAGE_URI -f ./${{ matrix.service.path }}/Dockerfile .
+          echo "Pushing Docker image $IMAGE_URI"
+          docker push $IMAGE_URI
