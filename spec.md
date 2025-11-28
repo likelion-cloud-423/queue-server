@@ -34,10 +34,10 @@
 ```mermaid
 graph TD
         Client((Client/Web/Mobile)) -->|HTTP| QueueAPI
-        QueueAPI[queue-api] -->|ZADD/ZRANK/HSET| Valkey[(Valkey Cluster)]
-        QueueManager[queue-manager] -->|Lua Tx / cleanup| Valkey
         QueueManager -->|Metrics| Prometheus
+        QueueManager[queue-manager] -->|Lua Tx / cleanup| Valkey
         QueueAPI -->|Metrics| Prometheus
+        QueueAPI[queue-api] -->|ZADD/ZRANK/HSET| Valkey[(Valkey Cluster)]
         Client -->|WebSocket ticketId| GameServer
         GameServer -->|HGETALL queue:joining:*| Valkey
         GameServer -->|HSET server:status| Valkey
@@ -195,14 +195,13 @@ sequenceDiagram
        - `now = current timestamp (epoch millis)`
        - `ZREMRANGEBYSCORE queue:joining:tickets 0 {now}` (만료된 티켓 ID 제거)
        - 정리된 티켓 수를 Prometheus 카운터 `ticket_expired_count`에 기록
-
-2. **현재 상태 조회**:
-       - `current_users`: 게임서버 현재 접속자 수 (`server:status` Hash)
-       - `joining_users`: 티켓은 발급되었으나 아직 접속하지 않은 유저 수 (Valkey `ZCOUNT queue:joining:tickets {now} +inf`)
-       - `soft_cap`: GameServer가 설정한 소프트 한계치 (`server:status` Hash의 `soft_cap`, 없으면 `max_cap` 또는 기본값)
-3. **입장 가능 인원 계산**:
-       - `total_active = current_users + joining_users`
-       - `available_slots = soft_cap - total_active`
+    2. **현재 상태 조회**:
+           - `current_users`: 게임서버 현재 접속자 수 (`server:status` Hash)
+           - `joining_users`: 티켓은 발급되었으나 아직 접속하지 않은 유저 수 (Valkey `ZCOUNT queue:joining:tickets {now} +inf`)
+           - `soft_cap`: GameServer가 설정한 소프트 한계치 (`server:status` Hash의 `soft_cap`, 없으면 `max_cap` 또는 기본값)
+    3. **입장 가능 인원 계산**:
+           - `total_active = current_users + joining_users`
+           - `available_slots = soft_cap - total_active`
     4. **배치 처리**:
        - `batch = min(available_slots, 100)` (100은 hard limit)
        - `if batch > 0`:
@@ -214,7 +213,6 @@ sequenceDiagram
              - `ZADD queue:joining:tickets {expireAt} ticketId` (티켓 목록에 추가)
              - `HSET queue:waiting:user:userId ticketId ticketId` (유저에게 티켓 ID 업데이트)
              - `ZREM queue:waiting userId` (대기열에서 제거)
-    5. Prometheus 카운터 `ticket_issued_count++`
 
 ### 4.4 게임 서버 접속 및 검증 (Client → ChatServer)
 
@@ -303,3 +301,4 @@ sequenceDiagram
 새로운 메시지 타입을 도입할 때에도 동일한 Envelope(`type` + `payload`) 구조를 유지하고, camelCase 직렬화 규칙을 따른다.
 
 ---
+
