@@ -1,0 +1,86 @@
+name: MonoRepo EKS CI/CD
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        service:
+          - { name: "queue-api", path: "queue-api", image: "queue-api" }
+          - { name: "queue-manager", path: "queue-manager", image: "queue-manager" }
+          - { name: "chat-server", path: "chat-server", image: "chat-server" }
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Detect changed files
+        id: changes
+        uses: tj-actions/changed-files@v42
+        with:
+          files: |
+            ${{ matrix.service.path }}/**
+
+      - name: Skip
+        if: steps.changes.outputs.any_changed != 'true'
+        run: echo "No changes in this service."
+
+      - name: Configure AWS credentials
+        if: steps.changes.outputs.any_changed == 'true'
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ap-northeast-2
+
+      - name: Login to ECR
+        if: steps.changes.outputs.any_changed == 'true'
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Setup Java
+        if: steps.changes.outputs.any_changed == 'true' && matrix.service.name == 'queue-api'
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Setup Gradle
+        if: steps.changes.outputs.any_changed == 'true' && matrix.service.name == 'queue-api'
+        uses: gradle/actions/setup-gradle@v3
+
+      - name: Build Spring Boot
+        if: steps.changes.outputs.any_changed == 'true' && matrix.service.name == 'queue-api'
+        run: |
+          cd ${{ matrix.service.path }}
+          ../gradlew clean build -x test
+
+      - name: Build Docker image
+        if: steps.changes.outputs.any_changed == 'true'
+        run: |
+          IMAGE_URI=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-northeast-2.amazonaws.com/${{ matrix.service.image }}:latest
+          docker build -t $IMAGE_URI ./${{ matrix.service.path }}
+
+      - name: Push Docker image
+        if: steps.changes.outputs.any_changed == 'true'
+        run: |
+          IMAGE_URI=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-northeast-2.amazonaws.com/${{ matrix.service.image }}:latest
+          docker push $IMAGE_URI
+
+      - name: Update kubeconfig
+        if: steps.changes.outputs.any_changed == 'true'
+        run: |
+          aws eks update-kubeconfig --name team3-eks-cluster --region ap-northeast-2
+
+      - name: Deploy to EKS
+        if: steps.changes.outputs.any_changed == 'true'
+        run: |
+          kubectl set image deployment/${{ matrix.service.image }} \
+            ${{ matrix.service.image }}=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-northeast-2.amazonaws.com/${{ matrix.service.image }}:latest
+          kubectl rollout status deployment/${{ matrix.service.image }}
