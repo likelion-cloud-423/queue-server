@@ -37,3 +37,12 @@ jobs:
           aws eks update-kubeconfig \
             --name ${{ secrets.K8S_CLUSTER_NAME }} \
             --region ${{ secrets.AWS_REGION }}
+
+      - name: Update Deployment Image in EKS
+        env:
+          REGISTRY: ${{ steps.ecr.outputs.registry }}
+          REPO: ${{ secrets.ECR_REPOSITORY }}
+        run: |
+          IMAGE=$REGISTRY/$REPO:latest
+          kubectl set image deployment/queue-manager queue-manager=$IMAGE
+          kubectl rollout status deployment/queue-manager
