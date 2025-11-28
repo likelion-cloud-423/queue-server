@@ -23,17 +23,44 @@ jobs:
         id: ecr
         uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Build & Push Multi Images
+      - name: Build & Push Multi Services
         env:
           REGISTRY: ${{ steps.ecr.outputs.registry }}
         run: |
-          SERVICES=("queue-api" "queue-manager" "queue-common")
+          SERVICES="queue-api queue-manager queue-common"
 
-          for SERVICE in "${SERVICES[@]}"; do
+          for SERVICE in $SERVICES; do
             IMAGE_NAME="$SERVICE"
             IMAGE="$REGISTRY/$IMAGE_NAME:latest"
 
+            echo "==============================="
             echo "▶ Building $SERVICE ..."
+            echo "==============================="
+
             docker build -t $IMAGE \
               -f ./queue/$SERVICE/Dockerfile \
               ./queue
+
+            echo "▶ Pushing $SERVICE → $IMAGE ..."
+            docker push $IMAGE
+          done
+
+      - name: Update kubeconfig
+        run: |
+          aws eks update-kubeconfig \
+            --name ${{ secrets.K8S_CLUSTER_NAME }} \
+            --region ${{ secrets.AWS_REGION }}
+
+      - name: Update EKS Deployments
+        env:
+          REGISTRY: ${{ steps.ecr.outputs.registry }}
+        run: |
+          SERVICES="queue-api queue-manager queue-common"
+
+          for SERVICE in $SERVICES; do
+            IMAGE="$REGISTRY/$SERVICE:latest"
+
+            echo "▶ Updating Deployment for $SERVICE ..."
+            kubectl set image deployment/$SERVICE $SERVICE=$IMAGE
+            kubectl rollout status deployment/$SERVICE
+          done
