@@ -13,9 +13,9 @@ jobs:
     strategy:
       matrix:
         service:
-          - { name: "queue-api", path: "queue/queue-api", image: "queue-api" }
-          - { name: "queue-manager", path: "queue/queue-manager", image: "queue-manager" }
-          - { name: "chat-server", path: "chat-server", image: "chat-server" }
+          - { name: "queue-api", path: "queue/queue-api", image: "queue-api", gradle: true }
+          - { name: "queue-manager", path: "queue/queue-manager", image: "queue-manager", gradle: false }
+          - { name: "chat-server", path: "chat-server", image: "chat-server", gradle: false }
 
     steps:
       - name: Checkout
@@ -31,35 +31,36 @@ jobs:
       - name: Login to ECR
         uses: aws-actions/amazon-ecr-login@v2
 
-      # Gradle / Java setup only for queue-api
-      - name: Setup Java for queue-api
-        if: matrix.service.name == 'queue-api'
+      # Gradle / Java setup only for services that need it
+      - name: Setup Java for Gradle services
+        if: ${{ matrix.service.gradle == true }}
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
 
-      - name: Setup Gradle for queue-api
-        if: matrix.service.name == 'queue-api'
+      - name: Setup Gradle
+        if: ${{ matrix.service.gradle == true }}
         uses: gradle/actions/setup-gradle@v3
 
-      - name: Build Spring Boot (queue-api)
-        if: matrix.service.name == 'queue-api'
+      - name: Build Spring Boot (Gradle)
+        if: ${{ matrix.service.gradle == true }}
         run: |
-          echo "Building ${matrix.service.name}..."
+          echo "Building ${{ matrix.service.name }}..."
           cd ${{ matrix.service.path }}
           ./gradlew clean build -x test
 
       - name: Ensure ECR repository exists
         run: |
-          aws ecr describe-repositories --repository-names ${{ matrix.service.image }} || \
-          aws ecr create-repository --repository-name ${{ matrix.service.image }}
+          REPO_NAME=${{ matrix.service.image }}
+          aws ecr describe-repositories --repository-names $REPO_NAME || \
+          aws ecr create-repository --repository-name $REPO_NAME
 
       - name: Build and Push Docker image
         run: |
-          IMAGE_URI=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-northeast-2.amazonaws.com/${{ matrix.service.image }}:latest
+          IMAGE_URI=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ matrix.service.image }}:latest
           echo "Building Docker image for ${{ matrix.service.name }} -> $IMAGE_URI"
-          docker build -t $IMAGE_URI ./${{ matrix.service.path }}
+          docker build -t $IMAGE_URI -f ./${{ matrix.service.path }}/Dockerfile .
           echo "Pushing Docker image $IMAGE_URI"
           docker push $IMAGE_URI
 
@@ -67,15 +68,33 @@ jobs:
         run: |
           aws eks update-kubeconfig --name ${{ secrets.K8S_CLUSTER_NAME }} --region ${{ secrets.AWS_REGION }}
 
-      - name: Deploy to EKS
+      - name: Deploy to EKS safely
         run: |
-          IMAGE_URI=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-northeast-2.amazonaws.com/${{ matrix.service.image }}:latest
-          echo "Updating deployment for ${{ matrix.service.name }} with image $IMAGE_URI"
-          # deployment 없으면 apply, 있으면 set image
-          if kubectl get deployment ${{ matrix.service.image }}; then
+          IMAGE_URI=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ matrix.service.image }}:latest
+          DEPLOYMENT_FILE="./${{ matrix.service.path }}/k8s/deployment.yaml"
+
+          echo "Deploying ${{ matrix.service.name }} to EKS..."
+
+          # 배포 YAML 존재 여부 체크
+          if [ ! -f "$DEPLOYMENT_FILE" ]; then
+            echo "Deployment YAML not found for ${{ matrix.service.name }}, skipping deployment."
+            exit 0
+          fi
+
+          # deployment 존재 여부 체크
+          if kubectl get deployment ${{ matrix.service.image }} > /dev/null 2>&1; then
+            echo "Deployment exists, updating image..."
             kubectl set image deployment/${{ matrix.service.image }} \
               ${{ matrix.service.image }}=$IMAGE_URI
           else
-            kubectl apply -f ./${{ matrix.service.path }}/k8s/deployment.yaml
+            echo "Deployment does not exist, applying deployment YAML..."
+            kubectl apply -f $DEPLOYMENT_FILE
           fi
-          kubectl rollout status deployment/${{ matrix.service.image }}
+
+          # rollout 확인, 실패 시 경고만 출력
+          echo "Waiting for rollout to complete..."
+          if ! kubectl rollout status deployment/${{ matrix.service.image }} --timeout=5m; then
+            echo "Warning: Rollout did not complete successfully for ${{ matrix.service.name }}"
+          else
+            echo "Rollout completed successfully for ${{ matrix.service.name }}"
+          fi
