@@ -18,11 +18,9 @@ jobs:
           - { name: "chat-server", path: "chat-server", image: "chat-server", gradle: false }
 
     steps:
-      # 1. 코드 체크아웃
       - name: Checkout
         uses: actions/checkout@v4
 
-      # 2. AWS 인증
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -30,11 +28,10 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
 
-      # 3. ECR 로그인
       - name: Login to ECR
         uses: aws-actions/amazon-ecr-login@v2
 
-      # 4. Gradle / Java 설정 (필요한 서비스만)
+      # Gradle / Java setup only for services that need it
       - name: Setup Java for Gradle services
         if: ${{ matrix.service.gradle == true }}
         uses: actions/setup-java@v4
@@ -46,27 +43,30 @@ jobs:
         if: ${{ matrix.service.gradle == true }}
         uses: gradle/actions/setup-gradle@v3
 
-      # 5. Spring Boot Gradle 빌드
+      # ⚡ gradlew 권한 추가
+      - name: Make Gradle wrapper executable
+        if: ${{ matrix.service.gradle == true }}
+        run: |
+          cd ${{ matrix.service.path }}
+          chmod +x ../gradlew
+
       - name: Build Spring Boot (Gradle)
         if: ${{ matrix.service.gradle == true }}
         run: |
           echo "=== Building ${{ matrix.service.name }} ==="
           cd ${{ matrix.service.path }}
           echo "Current directory: $(pwd)"
-          echo "Files in service folder:"
+          echo "Files: "
           ls -l
-          # 루트 gradlew 사용
-          ../gradlew :${{ matrix.service.name }}:clean :${{ matrix.service.name }}:build -x test
+          ../gradlew clean build -x test
           echo "=== Finished building ${{ matrix.service.name }} ==="
 
-      # 6. ECR 레포지토리 존재 확인 및 생성
       - name: Ensure ECR repository exists
         run: |
           REPO_NAME=${{ matrix.service.image }}
           aws ecr describe-repositories --repository-names $REPO_NAME || \
           aws ecr create-repository --repository-name $REPO_NAME
 
-      # 7. Docker 이미지 빌드 및 푸시
       - name: Build and Push Docker image
         run: |
           IMAGE_URI=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ matrix.service.image }}:latest
@@ -75,12 +75,10 @@ jobs:
           echo "Pushing Docker image $IMAGE_URI"
           docker push $IMAGE_URI
 
-      # 8. EKS kubeconfig 업데이트
       - name: Update kubeconfig
         run: |
           aws eks update-kubeconfig --name ${{ secrets.K8S_CLUSTER_NAME }} --region ${{ secrets.AWS_REGION }}
 
-      # 9. 안전하게 EKS 배포
       - name: Deploy to EKS safely
         run: |
           IMAGE_URI=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ matrix.service.image }}:latest
