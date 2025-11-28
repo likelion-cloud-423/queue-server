@@ -23,23 +23,30 @@ jobs:
         id: ecr
         uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Build & Push Multi Services
+      - name: Build & Push Services
         env:
           REGISTRY: ${{ steps.ecr.outputs.registry }}
         run: |
-          SERVICES="queue-api queue-manager queue-common"
+          # 서비스 목록 (서비스명, Dockerfile, context)
+          declare -A SERVICES
+          SERVICES["queue-api"]="./queue/queue-api/Dockerfile ./queue"
+          SERVICES["queue-manager"]="./queue/queue-manager/Dockerfile ./queue"
+          SERVICES["chat-server"]="./chat-server/Dockerfile ./chat-server"
 
-          for SERVICE in $SERVICES; do
-            IMAGE_NAME="$SERVICE"
-            IMAGE="$REGISTRY/$IMAGE_NAME:latest"
+          for SERVICE in "${!SERVICES[@]}"; do
+            FILE_AND_CONTEXT=${SERVICES[$SERVICE]}
+            DOCKERFILE=$(echo $FILE_AND_CONTEXT | awk '{print $1}')
+            CONTEXT=$(echo $FILE_AND_CONTEXT | awk '{print $2}')
+
+            IMAGE="$REGISTRY/$SERVICE:latest"
 
             echo "==============================="
             echo "▶ Building $SERVICE ..."
+            echo "Dockerfile: $DOCKERFILE"
+            echo "Context: $CONTEXT"
             echo "==============================="
 
-            docker build -t $IMAGE \
-              -f ./queue/$SERVICE/Dockerfile \
-              ./queue
+            docker build -t $IMAGE -f $DOCKERFILE $CONTEXT
 
             echo "▶ Pushing $SERVICE → $IMAGE ..."
             docker push $IMAGE
@@ -55,7 +62,7 @@ jobs:
         env:
           REGISTRY: ${{ steps.ecr.outputs.registry }}
         run: |
-          SERVICES="queue-api queue-manager queue-common"
+          SERVICES="queue-api queue-manager chat-server"
 
           for SERVICE in $SERVICES; do
             IMAGE="$REGISTRY/$SERVICE:latest"
