@@ -26,30 +26,31 @@ jobs:
       - name: Build & Push Services
         env:
           REGISTRY: ${{ steps.ecr.outputs.registry }}
+          COMMIT_SHA: ${{ github.sha }}
         run: |
-          # 서비스 목록 (서비스명, Dockerfile, context)
           declare -A SERVICES
           SERVICES["queue-api"]="./queue/queue-api/Dockerfile ./queue"
           SERVICES["queue-manager"]="./queue/queue-manager/Dockerfile ./queue"
           SERVICES["chat-server"]="./chat-server/Dockerfile ./chat-server"
+          TAG="${COMMIT_SHA::7}"
 
           for SERVICE in "${!SERVICES[@]}"; do
             FILE_AND_CONTEXT=${SERVICES[$SERVICE]}
             DOCKERFILE=$(echo $FILE_AND_CONTEXT | awk '{print $1}')
             CONTEXT=$(echo $FILE_AND_CONTEXT | awk '{print $2}')
-
-            IMAGE="$REGISTRY/$SERVICE:latest"
+            IMAGE="$REGISTRY/$SERVICE:$TAG"
 
             echo "==============================="
-            echo "▶ Building $SERVICE ..."
-            echo "Dockerfile: $DOCKERFILE"
-            echo "Context: $CONTEXT"
+            echo "Building $SERVICE with tag $TAG..."
             echo "==============================="
 
             docker build -t $IMAGE -f $DOCKERFILE $CONTEXT
 
-            echo "▶ Pushing $SERVICE → $IMAGE ..."
+            echo "Pushing $SERVICE → $IMAGE ..."
             docker push $IMAGE
+            
+            docker tag $IMAGE "$REGISTRY/$SERVICE:latest"
+            docker push "$REGISTRY/$SERVICE:latest"
           done
 
       - name: Update kubeconfig
@@ -61,13 +62,18 @@ jobs:
       - name: Update EKS Deployments
         env:
           REGISTRY: ${{ steps.ecr.outputs.registry }}
+          COMMIT_SHA: ${{ github.sha }}
         run: |
-          SERVICES="queue-api queue-manager chat-server"
+          SERVICES="queue-api queue-manager chat-server" 
+          TAG="${COMMIT_SHA::7}"
 
           for SERVICE in $SERVICES; do
-            IMAGE="$REGISTRY/$SERVICE:latest"
+            IMAGE="$REGISTRY/$SERVICE:$TAG"
 
-            echo "▶ Updating Deployment for $SERVICE ..."
+            echo "Updating Deployment for $SERVICE to image tag $TAG..."
+            
             kubectl set image deployment/$SERVICE $SERVICE=$IMAGE
-            kubectl rollout status deployment/$SERVICE
+            
+            echo "Waiting for rollout status of $SERVICE ..."
+            kubectl rollout status deployment/$SERVICE --timeout=5m
           done
