@@ -1,13 +1,11 @@
-name: MonoRepo ECR Docker CI
+name: MonoRepo ECR & EKS CI/CD
 
 on:
   push:
     branches: ["main"]
-  pull_request:
-    branches: ["main"]
 
 jobs:
-  build-and-push:
+  build-and-deploy:
     runs-on: ubuntu-latest
 
     strategy:
@@ -21,6 +19,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+   
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -31,16 +30,39 @@ jobs:
       - name: Login to Amazon ECR
         uses: aws-actions/amazon-ecr-login@v2
 
+     
       - name: Ensure ECR repository exists
         run: |
-          REPO_NAME=${{ matrix.service.image }}
-          aws ecr describe-repositories --repository-names $REPO_NAME || \
-          aws ecr create-repository --repository-name $REPO_NAME
+          REPO=${{ matrix.service.image }}
+          aws ecr describe-repositories --repository-names $REPO || \
+          aws ecr create-repository --repository-name $REPO
 
+   
       - name: Build and Push Docker image
         run: |
-          IMAGE_URI=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ matrix.service.image }}:latest
-          echo "Building Docker image for ${{ matrix.service.name }} -> $IMAGE_URI"
-          docker build -t $IMAGE_URI -f ./${{ matrix.service.path }}/Dockerfile .
-          echo "Pushing Docker image $IMAGE_URI"
-          docker push $IMAGE_URI
+          IMAGE="${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ matrix.service.image }}:latest"
+
+          echo "Building $IMAGE using context: ./${{ matrix.service.path }}"
+          docker build -t $IMAGE ./${{ matrix.service.path }}
+
+          echo "Pushing $IMAGE"
+          docker push $IMAGE
+
+   
+      - name: Update kubeconfig
+        run: |
+          aws eks update-kubeconfig \
+            --region ${{ secrets.AWS_REGION }} \
+            --name ${{ secrets.EKS_CLUSTER_NAME }}
+
+     
+      - name: Update EKS Deployment image
+        run: |
+          IMAGE="${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ matrix.service.image }}:latest"
+
+          echo "Updating deployment: ${{ matrix.service.name }}"
+
+          kubectl set image deployment/${{ matrix.service.name }} \
+            ${{ matrix.service.name }}=$IMAGE
+
+          kubectl rollout status deployment/${{ matrix.service.name }}
