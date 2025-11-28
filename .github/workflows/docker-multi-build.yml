@@ -46,8 +46,13 @@ jobs:
       - name: Build Spring Boot (Gradle)
         if: ${{ matrix.service.gradle == true }}
         run: |
-          echo "Building ${{ matrix.service.name }}..."
-          ./gradlew :${{ matrix.service.name }}:clean :${{ matrix.service.name }}:build -x test
+          echo "=== Building ${{ matrix.service.name }} ==="
+          cd ${{ matrix.service.path }}
+          echo "Current directory: $(pwd)"
+          echo "Files: "
+          ls -l
+          ./gradlew clean build -x test
+          echo "=== Finished building ${{ matrix.service.name }} ==="
 
       - name: Ensure ECR repository exists
         run: |
@@ -59,7 +64,14 @@ jobs:
         run: |
           IMAGE_URI=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ matrix.service.image }}:latest
           echo "Building Docker image for ${{ matrix.service.name }} -> $IMAGE_URI"
-          docker build -t $IMAGE_URI -f ./${{ matrix.service.path }}/Dockerfile .
+
+          # Dockerfile 존재 체크
+          if [ ! -f ./${{ matrix.service.path }}/Dockerfile ]; then
+            echo "Error: Dockerfile not found in ${{ matrix.service.path }}"
+            exit 1
+          fi
+
+          docker build -t $IMAGE_URI -f ./${{ matrix.service.path }}/Dockerfile ./${{ matrix.service.path }}
           echo "Pushing Docker image $IMAGE_URI"
           docker push $IMAGE_URI
 
