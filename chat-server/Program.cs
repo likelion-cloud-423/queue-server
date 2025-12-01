@@ -1,11 +1,13 @@
 using System.Diagnostics;
 using System.Net;
+using ChatServer;
 using ChatServer.Repositories;
 using ChatServer.Services;
 using StackExchange.Redis;
-using ChatServer;
 
 var builder = WebApplication.CreateSlimBuilder(args);
+
+builder.Environment.ApplicationName = "chat-server";
 
 builder.AddServiceDefaults();
 
