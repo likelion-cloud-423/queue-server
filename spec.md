@@ -523,10 +523,10 @@ flowchart TB
 
 | 서비스 | URL | 설명 |
 |--------|-----|------|
-| Grafana | http://localhost:3000 | 모니터링 대시보드 (로그인 불필요) |
-| Prometheus | http://localhost:9090 | 메트릭 저장소 |
-| Loki | http://localhost:3100 | 로그 저장소 |
-| Alloy UI | http://localhost:12345 | OpenTelemetry Collector UI |
+| Grafana | <http://localhost:3000> | 모니터링 대시보드 (로그인 불필요) |
+| Prometheus | <http://localhost:9090> | 메트릭 저장소 |
+| Loki | <http://localhost:3100> | 로그 저장소 |
+| Alloy UI | <http://localhost:12345> | OpenTelemetry Collector UI |
 
 ### 6.6 LogQL 쿼리 예시
 
