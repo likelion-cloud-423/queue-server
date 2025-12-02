@@ -5,18 +5,20 @@ namespace ChatServer.Services;
 
 public sealed record User(string UserId, string Nickname);
 
-public sealed class AuthService(ITicketRepository ticketRepository)
+public sealed class AuthService(ITicketRepository ticketRepository, MetricService metrics)
 {
     public async Task<AuthenticationResult> AuthenticateAsync(string? ticketId, CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(ticketId))
         {
+            metrics.RecordAuthFailure();
             return AuthenticationResult.Fail(StatusCodes.Status401Unauthorized, "MissingTicketId", "ticketId query parameter is required.");
         }
 
         var user = await ticketRepository.GetUserByTicketAsync(ticketId, cancellationToken);
         if (user is null)
         {
+            metrics.RecordAuthFailure();
             return AuthenticationResult.Fail(StatusCodes.Status401Unauthorized, "InvalidTicket", "ticketId is invalid or expired.");
         }
 

@@ -10,8 +10,12 @@ services:
       SPRING_DATA_REDIS_PORT: 6379
       LOGGING_LEVEL_ROOT: INFO
       LOGGING_LEVEL_COM_LIKELION_QUEUEAPI: DEBUG
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://alloy:4318
+      OTEL_SERVICE_NAME: queue-api
     depends_on:
       valkey:
+        condition: service_started
+      alloy:
         condition: service_started
     ports:
       - "8080:8080"
@@ -35,8 +39,12 @@ services:
       SPRING_DATA_REDIS_PORT: 6379
       LOGGING_LEVEL_ROOT: INFO
       LOGGING_LEVEL_COM_LIKELION_QUEUEMANAGER: DEBUG
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://alloy:4318
+      OTEL_SERVICE_NAME: queue-manager
     depends_on:
       valkey:
+        condition: service_started
+      alloy:
         condition: service_started
     networks:
       - queue-net
@@ -56,6 +64,11 @@ services:
     environment:
       ConnectionStrings__Valkey: "valkey:6379"
       ASPNETCORE_ENVIRONMENT: "Development"
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://alloy:4317
+      OTEL_SERVICE_NAME: chat-server
+    depends_on:
+      alloy:
+        condition: service_started
     ports:
       - "8081:8080"
     networks:
@@ -83,6 +96,97 @@ services:
     networks:
       - queue-net
 
+  # =============================================================================
+  # Observability Stack
+  # =============================================================================
+
+  # Grafana Alloy - OpenTelemetry Collector
+  alloy:
+    container_name: alloy
+    image: grafana/alloy:latest
+    volumes:
+      - ./observability/alloy-config.alloy:/etc/alloy/config.alloy
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    command:
+      - run
+      - /etc/alloy/config.alloy
+      - --server.http.listen-addr=0.0.0.0:12345
+      - --stability.level=generally-available
+    ports:
+      - "12345:12345"  # Alloy UI
+      - "4317:4317"    # OTLP gRPC
+      - "4318:4318"    # OTLP HTTP
+    depends_on:
+      prometheus:
+        condition: service_started
+      loki:
+        condition: service_started
+    networks:
+      - queue-net
+
+  # Prometheus - Metrics Storage
+  prometheus:
+    container_name: prometheus
+    image: prom/prometheus:latest
+    volumes:
+      - ./observability/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus-data:/prometheus
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --web.console.libraries=/etc/prometheus/console_libraries
+      - --web.console.templates=/etc/prometheus/consoles
+      - --web.enable-lifecycle
+      - --web.enable-remote-write-receiver
+    ports:
+      - "9090:9090"
+    networks:
+      - queue-net
+
+  # Loki - Log Storage
+  loki:
+    container_name: loki
+    image: grafana/loki:latest
+    volumes:
+      - ./observability/loki-config.yaml:/etc/loki/local-config.yaml
+      - loki-data:/loki
+    command: -config.file=/etc/loki/local-config.yaml
+    ports:
+      - "3100:3100"
+    networks:
+      - queue-net
+
+  # Grafana - Dashboard
+  grafana:
+    container_name: grafana
+    image: grafana/grafana:latest
+    volumes:
+      - ./observability/grafana-datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml
+      - ./observability/grafana-dashboards.yml:/etc/grafana/provisioning/dashboards/dashboards.yml
+      - ./observability/dashboards:/etc/grafana/provisioning/dashboards
+      - grafana-data:/var/lib/grafana
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_USERS_ALLOW_SIGN_UP: false
+      GF_AUTH_ANONYMOUS_ENABLED: true
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+      GF_SECURITY_DISABLE_INITIAL_ADMIN_CONFIGURATION: true
+    ports:
+      - "3000:3000"
+    depends_on:
+      prometheus:
+        condition: service_started
+      loki:
+        condition: service_started
+    networks:
+      - queue-net
+
 networks:
   queue-net:
     driver: bridge
+
+volumes:
+  prometheus-data:
+  loki-data:
+  grafana-data:

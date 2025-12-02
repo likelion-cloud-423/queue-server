@@ -1,0 +1,134 @@
+// Grafana Alloy Configuration for Observability Stack
+// Collects metrics via OTLP and logs via Docker
+
+// =============================================================================
+// OTLP Receiver - Receives metrics, logs, and traces from applications
+// =============================================================================
+otelcol.receiver.otlp "default" {
+  grpc {
+    endpoint = "0.0.0.0:4317"
+  }
+  http {
+    endpoint = "0.0.0.0:4318"
+  }
+
+  output {
+    metrics = [otelcol.processor.transform.add_service_label.input]
+    logs    = [otelcol.processor.batch.default.input]
+    traces  = [otelcol.processor.batch.default.input]
+  }
+}
+
+// =============================================================================
+// Transform Processor - Add service label from resource attributes
+// =============================================================================
+otelcol.processor.transform "add_service_label" {
+  error_mode = "ignore"
+
+  metric_statements {
+    context = "datapoint"
+    statements = [
+      `set(attributes["service"], resource.attributes["service.name"])`,
+    ]
+  }
+
+  output {
+    metrics = [otelcol.processor.batch.default.input]
+  }
+}
+
+// =============================================================================
+// Batch Processor - Batches telemetry data for efficient export
+// =============================================================================
+otelcol.processor.batch "default" {
+  output {
+    metrics = [otelcol.exporter.prometheus.default.input]
+    logs    = [otelcol.exporter.loki.default.input]
+    traces  = []
+  }
+}
+
+// =============================================================================
+// Prometheus Exporter - Exports metrics to Prometheus
+// =============================================================================
+otelcol.exporter.prometheus "default" {
+  forward_to = [prometheus.remote_write.default.receiver]
+}
+
+prometheus.remote_write "default" {
+  endpoint {
+    url = "http://prometheus:9090/api/v1/write"
+  }
+}
+
+// =============================================================================
+// Loki Exporter - Exports logs to Loki
+// =============================================================================
+otelcol.exporter.loki "default" {
+  forward_to = [loki.write.default.receiver]
+}
+
+loki.write "default" {
+  endpoint {
+    url = "http://loki:3100/loki/api/v1/push"
+  }
+}
+
+// =============================================================================
+// Docker Log Discovery - Discovers and collects logs from Docker containers
+// =============================================================================
+discovery.docker "containers" {
+  host = "unix:///var/run/docker.sock"
+}
+
+discovery.relabel "docker_logs" {
+  targets = discovery.docker.containers.targets
+
+  // Keep only containers from our network
+  rule {
+    source_labels = ["__meta_docker_container_name"]
+    regex         = "/(queue-api|queue-manager|chat-server)"
+    action        = "keep"
+  }
+
+  // Set container name as label
+  rule {
+    source_labels = ["__meta_docker_container_name"]
+    regex         = "/(.*)"
+    target_label  = "container"
+  }
+
+  // Set service name
+  rule {
+    source_labels = ["__meta_docker_container_name"]
+    regex         = "/(.*)"
+    target_label  = "service_name"
+  }
+}
+
+loki.source.docker "docker_logs" {
+  host       = "unix:///var/run/docker.sock"
+  targets    = discovery.relabel.docker_logs.output
+  forward_to = [loki.process.docker_logs.receiver]
+}
+
+loki.process "docker_logs" {
+  forward_to = [loki.write.default.receiver]
+
+  // Parse JSON logs if present
+  stage.json {
+    expressions = {
+      level   = "level",
+      message = "message",
+      logger  = "logger",
+      thread  = "thread",
+    }
+  }
+
+  // Set log level label
+  stage.labels {
+    values = {
+      level = "",
+    }
+  }
+}

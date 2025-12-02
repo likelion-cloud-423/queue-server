@@ -10,7 +10,8 @@ namespace ChatServer.Services;
 public class ChatService(
     ILogger<ChatService> logger,
     ITicketRepository ticketRepository,
-    IServerStatusService serverStatusService) : BackgroundService
+    IServerStatusService serverStatusService,
+    MetricService metrics) : BackgroundService
 {
     private const int ReceiveBufferSize = 4 * 1024;
     private static readonly JsonSerializerOptions s_serializerOptions = new(JsonSerializerDefaults.Web)
@@ -66,6 +67,7 @@ public class ChatService(
 
         logger.LogInformation("Client {ClientId} ({UserId}) connected.", clientId, user.UserId);
 
+        metrics.RecordConnection();
         await ticketRepository.ConsumeTicketAsync(ticketId, user.UserId, cancellationToken);
         await UpdateServerStatusAsync(cancellationToken);
 
@@ -134,6 +136,8 @@ public class ChatService(
                 connection.Touch();
 
                 var payloadSpan = messageBuffer.WrittenSpan;
+                metrics.RecordMessageReceived(payloadSpan.Length);
+
                 string? payloadText = null;
                 if (logger.IsEnabled(LogLevel.Debug))
                 {
@@ -291,6 +295,7 @@ public class ChatService(
             }
 
             logger.LogInformation("Disconnecting idle client {ClientId} ({UserId})", connection.Id, userId);
+            metrics.RecordIdleDisconnect();
             await CloseAndRemoveAsync(userId, WebSocketCloseStatus.NormalClosure, "Idle timeout", stoppingToken);
         }
     }
@@ -301,6 +306,7 @@ public class ChatService(
         var buffer = Encoding.UTF8.GetBytes(serialized);
         var segment = new ArraySegment<byte>(buffer);
 
+        var recipientCount = 0;
         foreach (var connection in _clients.Values)
         {
             if (connection.Socket.State != WebSocketState.Open)
@@ -314,6 +320,7 @@ public class ChatService(
                 await connection.SendLock.WaitAsync(cancellationToken);
                 lockHeld = true;
                 await connection.Socket.SendAsync(segment, WebSocketMessageType.Text, true, cancellationToken);
+                recipientCount++;
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
@@ -329,6 +336,8 @@ public class ChatService(
                 }
             }
         }
+
+        metrics.RecordBroadcast(recipientCount);
     }
 
     private async Task CloseAndRemoveAsync(string userId, WebSocketCloseStatus status, string description,
@@ -355,6 +364,7 @@ public class ChatService(
             connection.SendLock.Dispose();
             connection.Socket.Dispose();
             logger.LogInformation("Client {ClientId} ({UserId}) disconnected.", connection.Id, userId);
+            metrics.RecordDisconnection();
             await UpdateServerStatusAsync(CancellationToken.None);
             await BroadcastSystemMessageAsync(message: $"{connection.User.Nickname} 님이 퇴장했습니다.", cancellationToken: CancellationToken.None);
         }
@@ -362,9 +372,12 @@ public class ChatService(
 
     private async Task UpdateServerStatusAsync(CancellationToken cancellationToken)
     {
+        var currentCount = ClientCount;
+        metrics.SetCurrentUsers(currentCount);
+
         try
         {
-            await serverStatusService.PublishAsync(ClientCount, cancellationToken);
+            await serverStatusService.PublishAsync(currentCount, cancellationToken);
         }
         catch (OperationCanceledException)
         {

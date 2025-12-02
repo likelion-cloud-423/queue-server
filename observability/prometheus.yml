@@ -1,0 +1,20 @@
+# Prometheus Configuration
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+# Enable remote write receiver for Alloy
+# Note: This requires prometheus to be started with --web.enable-remote-write-receiver flag
+
+scrape_configs:
+  # Prometheus self-monitoring
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # All application metrics (queue-api, queue-manager, chat-server) are collected via OTLP -> Alloy -> Prometheus remote write
+
+  # Alloy metrics
+  - job_name: 'alloy'
+    static_configs:
+      - targets: ['alloy:12345']

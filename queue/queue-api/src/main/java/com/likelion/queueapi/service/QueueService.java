@@ -23,13 +23,17 @@ public class QueueService {
 
     private final QueueRepository redisRepository;
     private final QueueApiProperties properties;
+    private final MetricService metrics;
 
-    public QueueService(QueueRepository redisRepository, QueueApiProperties properties) {
+    public QueueService(QueueRepository redisRepository, QueueApiProperties properties, MetricService metrics) {
         this.redisRepository = redisRepository;
         this.properties = properties;
+        this.metrics = metrics;
     }
 
     public QueueEntryResponse enqueue(QueueEntryRequest request) {
+        metrics.recordEntryRequest();
+
         String userId = UUID.randomUUID().toString();
         long score = Instant.now().toEpochMilli();
 
@@ -47,6 +51,8 @@ public class QueueService {
     }
 
     public QueueStatusResponse getStatus(String userId) {
+        metrics.recordStatusRequest();
+
         Map<String, String> meta = redisRepository.findWaitingMeta(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found in queue"));
 
@@ -54,6 +60,7 @@ public class QueueService {
 
         String ticketId = meta.get("ticketId");
         if (ticketId != null && !ticketId.isBlank()) {
+            metrics.recordPromotedUser();
             return new QueueStatusResponse(QueueStatus.PROMOTED, 0L, ticketId);
         }
 

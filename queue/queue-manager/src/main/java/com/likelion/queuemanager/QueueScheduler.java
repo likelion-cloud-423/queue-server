@@ -3,6 +3,7 @@ package com.likelion.queuemanager;
 import com.likelion.queuemanager.config.QueueManagerProperties;
 import com.likelion.queuemanager.model.ServerStatus;
 import com.likelion.queuemanager.repository.QueueManagerRepository;
+import com.likelion.queuemanager.service.MetricService;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import org.slf4j.Logger;
@@ -25,16 +26,21 @@ public class QueueScheduler {
 
     private final QueueManagerRepository redisRepository;
     private final QueueManagerProperties properties;
+    private final MetricService queueMetrics;
     private final Counter issuedCounter;
     private final Counter expiredCounter;
+    private final Counter droppedUsersCounter;
 
     public QueueScheduler(QueueManagerRepository redisRepository,
                           QueueManagerProperties properties,
+                          MetricService queueMetrics,
                           MeterRegistry meterRegistry) {
         this.redisRepository = redisRepository;
         this.properties = properties;
-        this.issuedCounter = meterRegistry.counter("ticket_issued_count");
-        this.expiredCounter = meterRegistry.counter("ticket_expired_count");
+        this.queueMetrics = queueMetrics;
+        this.issuedCounter = meterRegistry.counter("queue.tickets_issued_total");
+        this.expiredCounter = meterRegistry.counter("queue.tickets_expired_total");
+        this.droppedUsersCounter = meterRegistry.counter("queue.dropped_users_total");
     }
 
     @Scheduled(fixedDelayString = "#{@queueManagerProperties.scheduleIntervalMillis()}")
@@ -66,6 +72,12 @@ public class QueueScheduler {
         long currentUsers = serverStatus.currentUsers();
         long softCap = serverStatus.resolveSoftCap(properties.getDefaultSoftCap());
         long availableSlots = softCap - (currentUsers + joiningUsers);
+
+        // 대기열 크기 조회 및 메트릭 업데이트
+        Long waitingSize = redisRepository.waitingSize();
+        long waitingUsers = waitingSize != null ? waitingSize : 0;
+        queueMetrics.updateQueueMetrics(waitingUsers, joiningUsers, currentUsers, softCap);
+
         if (availableSlots <= 0) {
             if (log.isDebugEnabled()) {
                 log.debug("No capacity available (softCap={}, current={}, joining={})",
@@ -90,15 +102,18 @@ public class QueueScheduler {
             return;
         }
         int issuedThisCycle = 0;
+        int droppedThisCycle = 0;
         for (String userId : candidates) {
             Map<String, String> meta = redisRepository.fetchUserMeta(userId);
             if (meta == null || meta.isEmpty()) {
                 dropWaitingUser(userId);
+                droppedThisCycle++;
                 continue;
             }
 
             if (isInactive(meta, nowEpochMillis)) {
                 dropWaitingUser(userId);
+                droppedThisCycle++;
                 if (log.isDebugEnabled()) {
                     log.debug("Removed inactive user {} from waiting queue", userId);
                 }
@@ -108,6 +123,7 @@ public class QueueScheduler {
             String nickname = meta.get("nickname");
             if (nickname == null || nickname.isBlank()) {
                 dropWaitingUser(userId);
+                droppedThisCycle++;
                 continue;
             }
 
@@ -117,6 +133,10 @@ public class QueueScheduler {
             if (promoted) {
                 issuedThisCycle++;
             }
+        }
+
+        if (droppedThisCycle > 0) {
+            droppedUsersCounter.increment(droppedThisCycle);
         }
 
         if (issuedThisCycle > 0) {

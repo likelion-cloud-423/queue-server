@@ -18,6 +18,7 @@ var valkeyConnectionString = builder.Configuration.GetConnectionString("Valkey")
 
 builder.Services.AddSingleton<IConnectionMultiplexer>(_ => ConnectionMultiplexer.Connect(valkeyConnectionString));
 builder.Services.AddSingleton<ITicketRepository, TicketRepository>();
+builder.Services.AddSingleton<MetricService>();
 builder.Services.AddSingleton<ChatService>();
 builder.Services.AddHostedService(sp => sp.GetRequiredService<ChatService>());
 builder.Services.AddSingleton<AuthService>();
@@ -34,9 +35,7 @@ var webSocketOptions = new WebSocketOptions
 
 app.UseWebSockets(webSocketOptions);
 
-var group = app.MapGroup("/gameserver");
-
-group.Map("/", async context =>
+app.MapGet("/gameserver", async context =>
 {
     if (!context.WebSockets.IsWebSocketRequest)
     {
@@ -70,11 +69,5 @@ group.Map("/", async context =>
     using var socket = await context.WebSockets.AcceptWebSocketAsync();
     await chatService.HandleClientAsync(socket, authResult.User, ticketId, context.RequestAborted);
 });
-
-// TODO: TelemetryApi, TelemetryService 로 옮기기
-group.MapGet("/clients", (ChatService chatService) =>
-    Results.Ok(new { Count = chatService.ClientCount }));
-
-app.MapGet("/", () => "Chat Server is running.");
 
 app.Run();
