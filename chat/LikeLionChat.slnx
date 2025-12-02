@@ -1,0 +1,7 @@
+<Solution>
+  <Project Path="LikeLionChat.AppHost/LikeLionChat.AppHost.csproj" />
+  <Project Path="LikeLionChat.Client/LikeLionChat.Client.csproj" Id="d24e6ec0-c1a8-4aa0-9626-9a654c3ce91a" />
+  <Project Path="LikeLionChat.Server/LikeLionChat.Server.csproj" />
+  <Project Path="LikeLionChat.ServiceDefaults/LikeLionChat.ServiceDefaults.csproj" />
+  <Project Path="LikeLionChat.Shared/LikeLionChat.Shared.csproj" Id="2f3d0f99-fbc2-40a3-a940-5abe89328f86" />
+</Solution>

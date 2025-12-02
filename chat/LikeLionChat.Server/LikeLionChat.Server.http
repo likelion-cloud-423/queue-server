@@ -1,0 +1,6 @@
+@LikeLionChat.Server_HostAddress = http://localhost:5111
+
+GET {{LikeLionChat.Server_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
