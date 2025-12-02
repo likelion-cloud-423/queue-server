@@ -748,7 +748,7 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "rate(chatserver_messages_received_total{service=\"chat-server\"}[1m])",
+          "expr": "rate(chatserver_messages_received_total{service=\"chat-server\"}[10m])",
           "legendFormat": "Messages Received/sec",
           "range": true,
           "refId": "A"
@@ -758,8 +758,10 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "rate(chatserver_messages_sent_total{service=\"chat-server\"}[1m])",
+          "editorMode": "code",
+          "expr": "rate(chatserver_messages_sent_total{service=\"chat-server\"}[10m])",
           "legendFormat": "Messages Sent/sec",
+          "range": true,
           "refId": "B"
         },
         {
@@ -767,8 +769,10 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "rate(chatserver_messages_broadcast_total{service=\"chat-server\"}[1m])",
+          "editorMode": "code",
+          "expr": "rate(chatserver_messages_broadcast_total{service=\"chat-server\"}[10m])",
           "legendFormat": "Broadcasts/sec",
+          "range": true,
           "refId": "C"
         }
       ],
@@ -2046,7 +2050,7 @@
             "steps": [
               {
                 "color": "green",
-                "value": null
+                "value": 0
               },
               {
                 "color": "yellow",
@@ -2059,7 +2063,8 @@
             ]
           },
           "unit": "short"
-        }
+        },
+        "overrides": []
       },
       "gridPos": {
         "h": 4,
@@ -2071,6 +2076,9 @@
       "options": {
         "colorMode": "value",
         "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
         "reduceOptions": {
           "calcs": [
             "lastNotNull"
@@ -2078,8 +2086,11 @@
           "fields": "",
           "values": false
         },
-        "textMode": "auto"
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
       },
+      "pluginVersion": "12.3.0",
       "targets": [
         {
           "datasource": {
@@ -2109,12 +2120,13 @@
             "steps": [
               {
                 "color": "green",
-                "value": null
+                "value": 0
               }
             ]
           },
           "unit": "bytes"
-        }
+        },
+        "overrides": []
       },
       "gridPos": {
         "h": 4,
@@ -2126,6 +2138,9 @@
       "options": {
         "colorMode": "value",
         "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
         "reduceOptions": {
           "calcs": [
             "lastNotNull"
@@ -2133,8 +2148,11 @@
           "fields": "",
           "values": false
         },
-        "textMode": "auto"
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
       },
+      "pluginVersion": "12.3.0",
       "targets": [
         {
           "datasource": {
@@ -2164,12 +2182,13 @@
             "steps": [
               {
                 "color": "green",
-                "value": null
+                "value": 0
               }
             ]
           },
           "unit": "short"
-        }
+        },
+        "overrides": []
       },
       "gridPos": {
         "h": 4,
@@ -2181,6 +2200,9 @@
       "options": {
         "colorMode": "value",
         "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
         "reduceOptions": {
           "calcs": [
             "lastNotNull"
@@ -2188,8 +2210,11 @@
           "fields": "",
           "values": false
         },
-        "textMode": "auto"
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
       },
+      "pluginVersion": "12.3.0",
       "targets": [
         {
           "datasource": {
@@ -2214,12 +2239,14 @@
             "mode": "thresholds"
           },
           "mappings": [],
+          "max": 1,
+          "min": 0,
           "thresholds": {
             "mode": "absolute",
             "steps": [
               {
                 "color": "green",
-                "value": null
+                "value": 0
               },
               {
                 "color": "yellow",
@@ -2232,7 +2259,8 @@
             ]
           },
           "unit": "percentunit"
-        }
+        },
+        "overrides": []
       },
       "gridPos": {
         "h": 4,
@@ -2244,6 +2272,9 @@
       "options": {
         "colorMode": "value",
         "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
         "reduceOptions": {
           "calcs": [
             "lastNotNull"
@@ -2251,8 +2282,11 @@
           "fields": "",
           "values": false
         },
-        "textMode": "auto"
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
       },
+      "pluginVersion": "12.3.0",
       "targets": [
         {
           "datasource": {
@@ -2289,13 +2323,13 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               }
             ]
           },
           "unit": "ops"
-        }
+        },
+        "overrides": []
       },
       "gridPos": {
         "h": 8,
@@ -2374,13 +2408,13 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               }
             ]
           },
           "unit": "bytes"
-        }
+        },
+        "overrides": []
       },
       "gridPos": {
         "h": 8,
@@ -2474,5 +2508,5 @@
   "timezone": "browser",
   "title": "Queue Server Overview",
   "uid": "queue-server-overview",
-  "version": 4
+  "version": 5
 }
