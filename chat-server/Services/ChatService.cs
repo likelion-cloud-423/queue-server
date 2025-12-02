@@ -355,14 +355,28 @@ public class ChatService(
                 await connection.Socket.CloseAsync(status, description, cancellationToken);
             }
         }
+        catch (ObjectDisposedException)
+        {
+            // Socket already disposed by another operation
+        }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             logger.LogDebug(ex, "Failed to close client {ClientId}", connection.Id);
         }
         finally
         {
-            connection.SendLock.Dispose();
-            connection.Socket.Dispose();
+            try
+            {
+                connection.SendLock.Dispose();
+            }
+            catch (ObjectDisposedException) { }
+            
+            try
+            {
+                connection.Socket.Dispose();
+            }
+            catch (ObjectDisposedException) { }
+            
             logger.LogInformation("Client {ClientId} ({UserId}) disconnected.", connection.Id, userId);
             metrics.RecordDisconnection();
             await UpdateServerStatusAsync(CancellationToken.None);
