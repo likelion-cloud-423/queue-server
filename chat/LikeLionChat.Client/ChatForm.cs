@@ -29,6 +29,9 @@ public partial class ChatForm : Form
             
             // 접속 후 서버 상태 요청
             await _chatClient.RequestServerStatusAsync();
+            
+            // 1초마다 자동 새로고침 타이머 시작
+            statusRefreshTimer.Start();
         }
         catch (Exception ex)
         {
@@ -66,6 +69,21 @@ public partial class ChatForm : Form
         }
     }
 
+    private async void StatusRefreshTimer_Tick(object? sender, EventArgs e)
+    {
+        try
+        {
+            if (_chatClient.IsConnected)
+            {
+                await _chatClient.RequestServerStatusAsync();
+            }
+        }
+        catch
+        {
+            // 타이머에서 발생한 오류는 무시
+        }
+    }
+
     private async void BtnDisconnect_Click(object? sender, EventArgs e)
     {
         await DisconnectAsync();
@@ -97,6 +115,7 @@ public partial class ChatForm : Form
     {
         try
         {
+            statusRefreshTimer.Stop();
             await _chatClient.DisconnectAsync();
         }
         catch { }

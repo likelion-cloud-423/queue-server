@@ -9,6 +9,7 @@ partial class ChatForm
     private Label lblServerStatus = null!;
     private Button btnRefreshStatus = null!;
     private Button btnDisconnect = null!;
+    private System.Windows.Forms.Timer statusRefreshTimer = null!;
 
     protected override void Dispose(bool disposing)
     {
@@ -29,8 +30,13 @@ partial class ChatForm
         lblServerStatus = new Label();
         btnRefreshStatus = new Button();
         btnDisconnect = new Button();
+        statusRefreshTimer = new System.Windows.Forms.Timer(components);
 
         SuspendLayout();
+        
+        // statusRefreshTimer
+        statusRefreshTimer.Interval = 1000;
+        statusRefreshTimer.Tick += StatusRefreshTimer_Tick;
 
         // rtbMessages
         rtbMessages.Location = new Point(12, 12);

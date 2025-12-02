@@ -1,10 +1,20 @@
+using Bogus;
+
 namespace LikeLionChat.Client;
 
 public partial class MainForm : Form
 {
+    private readonly Faker _faker = new();
+
     public MainForm()
     {
         InitializeComponent();
+        Load += MainForm_Load;
+    }
+
+    private void MainForm_Load(object? sender, EventArgs e)
+    {
+        txtNickname.Text = _faker.Internet.UserName();
     }
 
     private async void BtnStart_Click(object? sender, EventArgs e)
