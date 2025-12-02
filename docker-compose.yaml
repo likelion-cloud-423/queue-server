@@ -10,8 +10,14 @@ services:
       SPRING_DATA_REDIS_PORT: 6379
       LOGGING_LEVEL_ROOT: INFO
       LOGGING_LEVEL_COM_LIKELION_QUEUEAPI: DEBUG
+      # OTLP HTTP for logs and metrics
       OTEL_EXPORTER_OTLP_ENDPOINT: http://alloy:4318
+      OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf
       OTEL_SERVICE_NAME: queue-api
+      OTEL_LOGS_EXPORTER: otlp
+      OTEL_METRICS_EXPORTER: none
+      OTEL_TRACES_EXPORTER: none
+      OTEL_RESOURCE_ATTRIBUTES: "service.name=queue-api"
     depends_on:
       valkey:
         condition: service_started
@@ -39,8 +45,14 @@ services:
       SPRING_DATA_REDIS_PORT: 6379
       LOGGING_LEVEL_ROOT: INFO
       LOGGING_LEVEL_COM_LIKELION_QUEUEMANAGER: DEBUG
+      # OTLP HTTP for logs and metrics
       OTEL_EXPORTER_OTLP_ENDPOINT: http://alloy:4318
+      OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf
       OTEL_SERVICE_NAME: queue-manager
+      OTEL_LOGS_EXPORTER: otlp
+      OTEL_METRICS_EXPORTER: none
+      OTEL_TRACES_EXPORTER: none
+      OTEL_RESOURCE_ATTRIBUTES: "service.name=queue-manager"
     depends_on:
       valkey:
         condition: service_started

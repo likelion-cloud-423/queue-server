@@ -11,12 +11,17 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-validation'
     implementation project(":queue-common")
 
-    // OpenTelemetry metrics and logs
+    // OpenTelemetry BOM for version alignment
+    implementation platform('io.opentelemetry:opentelemetry-bom:1.45.0')
+    implementation platform('io.opentelemetry.instrumentation:opentelemetry-instrumentation-bom-alpha:2.11.0-alpha')
+
+    // Micrometer OTLP for metrics (HTTP only)
     implementation 'io.micrometer:micrometer-registry-otlp'
-    implementation 'io.micrometer:micrometer-tracing-bridge-otel'
+
+    // OpenTelemetry for logs (gRPC)
     implementation 'io.opentelemetry:opentelemetry-exporter-otlp'
-    implementation 'io.opentelemetry.instrumentation:opentelemetry-logback-appender-1.0:2.11.0-alpha'
-    implementation 'io.opentelemetry:opentelemetry-sdk-extension-autoconfigure:1.45.0'
+    implementation 'io.opentelemetry:opentelemetry-sdk-extension-autoconfigure'
+    implementation 'io.opentelemetry.instrumentation:opentelemetry-logback-appender-1.0'
 
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
 }
