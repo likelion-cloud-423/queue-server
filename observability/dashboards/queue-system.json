@@ -18,7 +18,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 1,
+  "id": 8,
   "links": [],
   "panels": [
     {
@@ -31,7 +31,7 @@
       },
       "id": 1,
       "panels": [],
-      "title": "Queue API Metrics",
+      "title": "Queue Metrics",
       "type": "row"
     },
     {
@@ -97,8 +97,8 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 8,
-        "w": 12,
+        "h": 11,
+        "w": 7,
         "x": 0,
         "y": 1
       },
@@ -135,19 +135,6 @@
       ],
       "title": "Queue API - Request Rate",
       "type": "timeseries"
-    },
-    {
-      "collapsed": false,
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 9
-      },
-      "id": 4,
-      "panels": [],
-      "title": "Queue Manager Metrics",
-      "type": "row"
     },
     {
       "datasource": {
@@ -209,9 +196,9 @@
       },
       "gridPos": {
         "h": 11,
-        "w": 12,
-        "x": 0,
-        "y": 10
+        "w": 9,
+        "x": 7,
+        "y": 1
       },
       "id": 5,
       "options": {
@@ -329,9 +316,9 @@
       },
       "gridPos": {
         "h": 11,
-        "w": 12,
-        "x": 12,
-        "y": 10
+        "w": 8,
+        "x": 16,
+        "y": 1
       },
       "id": 6,
       "options": {
@@ -397,7 +384,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 21
+        "y": 12
       },
       "id": 7,
       "panels": [],
@@ -437,10 +424,10 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 4,
+        "h": 5,
         "w": 6,
         "x": 0,
-        "y": 22
+        "y": 13
       },
       "id": 8,
       "options": {
@@ -474,191 +461,6 @@
       ],
       "title": "Chat Server - Current Users",
       "type": "stat"
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": 0
-              },
-              {
-                "color": "yellow",
-                "value": 20
-              },
-              {
-                "color": "red",
-                "value": 50
-              }
-            ]
-          },
-          "unit": "short"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 4,
-        "w": 6,
-        "x": 6,
-        "y": 22
-      },
-      "id": 9,
-      "options": {
-        "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "percentChangeColorMode": "standard",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "showPercentChange": false,
-        "textMode": "auto",
-        "wideLayout": true
-      },
-      "pluginVersion": "12.3.0",
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "expr": "queue_joining_users{service=\"queue-manager\"}",
-          "legendFormat": "",
-          "refId": "A"
-        }
-      ],
-      "title": "Chat Server - Waiting to Join",
-      "type": "stat"
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "axisBorderShow": false,
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "",
-            "axisPlacement": "auto",
-            "barAlignment": 0,
-            "barWidthFactor": 0.6,
-            "drawStyle": "line",
-            "fillOpacity": 10,
-            "gradientMode": "none",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "insertNulls": false,
-            "lineInterpolation": "linear",
-            "lineWidth": 1,
-            "pointSize": 5,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "showPoints": "never",
-            "showValues": false,
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": 0
-              }
-            ]
-          },
-          "unit": "short"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 9,
-        "w": 12,
-        "x": 12,
-        "y": 22
-      },
-      "id": 10,
-      "options": {
-        "legend": {
-          "calcs": [
-            "mean",
-            "max"
-          ],
-          "displayMode": "table",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "hideZeros": false,
-          "mode": "multi",
-          "sort": "desc"
-        }
-      },
-      "pluginVersion": "12.3.0",
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "expr": "chatserver_current_users{service=\"chat-server\"}",
-          "legendFormat": "Current Users",
-          "refId": "A"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "expr": "rate(chatserver_connections_total{service=\"chat-server\"}[1m]) * 60",
-          "legendFormat": "Connections/min",
-          "refId": "B"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "expr": "rate(chatserver_disconnections_total{service=\"chat-server\"}[1m]) * 60",
-          "legendFormat": "Disconnections/min",
-          "refId": "C"
-        }
-      ],
-      "title": "Chat Server - Connection Activity",
-      "type": "timeseries"
     },
     {
       "datasource": {
@@ -719,10 +521,10 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 9,
-        "w": 12,
-        "x": 0,
-        "y": 26
+        "h": 10,
+        "w": 9,
+        "x": 6,
+        "y": 13
       },
       "id": 11,
       "options": {
@@ -787,7 +589,41 @@
       "fieldConfig": {
         "defaults": {
           "color": {
-            "mode": "thresholds"
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "showValues": false,
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
           },
           "mappings": [],
           "thresholds": {
@@ -796,10 +632,6 @@
               {
                 "color": "green",
                 "value": 0
-              },
-              {
-                "color": "red",
-                "value": 1
               }
             ]
           },
@@ -808,28 +640,27 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 4,
-        "w": 6,
-        "x": 12,
-        "y": 31
+        "h": 10,
+        "w": 9,
+        "x": 15,
+        "y": 13
       },
-      "id": 14,
+      "id": 10,
       "options": {
-        "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "percentChangeColorMode": "standard",
-        "reduceOptions": {
+        "legend": {
           "calcs": [
-            "lastNotNull"
+            "mean",
+            "max"
           ],
-          "fields": "",
-          "values": false
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
         },
-        "showPercentChange": false,
-        "textMode": "auto",
-        "wideLayout": true
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "desc"
+        }
       },
       "pluginVersion": "12.3.0",
       "targets": [
@@ -838,13 +669,31 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "sum(increase(http_server_requests_seconds_count{service=\"queue-api\", status=~\"5..\"}[1h]))",
-          "legendFormat": "",
+          "expr": "chatserver_current_users{service=\"chat-server\"}",
+          "legendFormat": "Current Users",
           "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "rate(chatserver_connections_total{service=\"chat-server\"}[1m]) * 60",
+          "legendFormat": "Connections/min",
+          "refId": "B"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "rate(chatserver_disconnections_total{service=\"chat-server\"}[1m]) * 60",
+          "legendFormat": "Disconnections/min",
+          "refId": "C"
         }
       ],
-      "title": "Queue API - 5xx Errors (1h)",
-      "type": "stat"
+      "title": "Chat Server - Connection Activity",
+      "type": "timeseries"
     },
     {
       "datasource": {
@@ -865,8 +714,12 @@
                 "value": 0
               },
               {
+                "color": "yellow",
+                "value": 20
+              },
+              {
                 "color": "red",
-                "value": 1
+                "value": 50
               }
             ]
           },
@@ -875,12 +728,12 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 4,
+        "h": 5,
         "w": 6,
-        "x": 18,
-        "y": 31
+        "x": 0,
+        "y": 18
       },
-      "id": 15,
+      "id": 9,
       "options": {
         "colorMode": "value",
         "graphMode": "area",
@@ -905,12 +758,12 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "sum(increase(chatserver_auth_failures_total{service=\"chat-server\"}[1h]))",
+          "expr": "queue_joining_users{service=\"queue-manager\"}",
           "legendFormat": "",
           "refId": "A"
         }
       ],
-      "title": "Chat Server - Auth Failures (1h)",
+      "title": "Chat Server - Waiting to Join",
       "type": "stat"
     },
     {
@@ -919,7 +772,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 35
+        "y": 23
       },
       "id": 12,
       "panels": [],
@@ -1008,7 +861,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 36
+        "y": 24
       },
       "id": 13,
       "options": {
@@ -1069,12 +922,148 @@
       "type": "timeseries"
     },
     {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 12,
+        "y": 24
+      },
+      "id": 14,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "12.3.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "editorMode": "code",
+          "expr": "sum(increase(http_server_requests_milliseconds_count{service=\"queue-api\", status=~\"5..\"}[1h]))",
+          "legendFormat": "",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Queue API - 5xx Errors (1h)",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 12,
+        "y": 28
+      },
+      "id": 15,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "12.3.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "sum(increase(chatserver_auth_failures_total{service=\"chat-server\"}[1h]))",
+          "legendFormat": "",
+          "refId": "A"
+        }
+      ],
+      "title": "Chat Server - Auth Failures (1h)",
+      "type": "stat"
+    },
+    {
       "collapsed": false,
       "gridPos": {
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 44
+        "y": 32
       },
       "id": 16,
       "panels": [],
@@ -1143,7 +1132,7 @@
         "h": 11,
         "w": 12,
         "x": 0,
-        "y": 45
+        "y": 33
       },
       "id": 17,
       "options": {
@@ -1169,8 +1158,10 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "sum(jvm_memory_used_bytes{service=\"queue-api\", area=\"heap\"}) by (service)",
-          "legendFormat": "queue-api Heap Used",
+          "editorMode": "code",
+          "expr": "sum(jvm_memory_used_bytes{area=\"heap\"}) by (service)",
+          "legendFormat": "{{service}} Heap Used",
+          "range": true,
           "refId": "A"
         },
         {
@@ -1178,8 +1169,10 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "sum(jvm_memory_max_bytes{service=\"queue-api\", area=\"heap\"}) by (service)",
-          "legendFormat": "queue-api Heap Max",
+          "editorMode": "code",
+          "expr": "sum(jvm_memory_max_bytes{area=\"heap\"}) by (service)",
+          "legendFormat": "{{service}} Heap Max",
+          "range": true,
           "refId": "B"
         },
         {
@@ -1187,8 +1180,10 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "sum(jvm_memory_used_bytes{service=\"queue-manager\", area=\"heap\"}) by (service)",
-          "legendFormat": "queue-manager Heap Used",
+          "editorMode": "code",
+          "expr": "sum(jvm_memory_used_bytes{area=\"heap\"}) by (service)",
+          "legendFormat": "{{service}} Heap Used",
+          "range": true,
           "refId": "C"
         },
         {
@@ -1196,8 +1191,10 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "sum(jvm_memory_max_bytes{service=\"queue-manager\", area=\"heap\"}) by (service)",
-          "legendFormat": "queue-manager Heap Max",
+          "editorMode": "code",
+          "expr": "sum(jvm_memory_max_bytes{area=\"heap\"}) by (service)",
+          "legendFormat": "{{service}} Heap Max",
+          "range": true,
           "refId": "D"
         }
       ],
@@ -1276,7 +1273,7 @@
         "h": 11,
         "w": 12,
         "x": 12,
-        "y": 45
+        "y": 33
       },
       "id": 18,
       "options": {
@@ -1302,8 +1299,10 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "system_cpu_usage{service=~\"queue-api|queue-manager\"}",
+          "editorMode": "code",
+          "expr": "system_cpu_usage",
           "legendFormat": "{{service}} - System CPU",
+          "range": true,
           "refId": "A"
         },
         {
@@ -1311,8 +1310,10 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "process_cpu_usage{service=~\"queue-api|queue-manager\"}",
+          "editorMode": "code",
+          "expr": "process_cpu_usage",
           "legendFormat": "{{service}} - Process CPU",
+          "range": true,
           "refId": "B"
         }
       ],
@@ -1381,7 +1382,7 @@
         "h": 11,
         "w": 12,
         "x": 0,
-        "y": 56
+        "y": 44
       },
       "id": 19,
       "options": {
@@ -1406,8 +1407,10 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "jvm_threads_live_threads{service=~\"queue-api|queue-manager\"}",
+          "editorMode": "code",
+          "expr": "jvm_threads_live",
           "legendFormat": "{{service}} - Live Threads",
+          "range": true,
           "refId": "A"
         },
         {
@@ -1415,8 +1418,10 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "jvm_threads_daemon_threads{service=~\"queue-api|queue-manager\"}",
+          "editorMode": "code",
+          "expr": "jvm_threads_daemon",
           "legendFormat": "{{service}} - Daemon Threads",
+          "range": true,
           "refId": "B"
         }
       ],
@@ -1485,7 +1490,7 @@
         "h": 11,
         "w": 12,
         "x": 12,
-        "y": 56
+        "y": 44
       },
       "id": 20,
       "options": {
@@ -1510,8 +1515,10 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "rate(jvm_gc_pause_seconds_count{service=~\"queue-api|queue-manager\"}[5m])",
+          "editorMode": "code",
+          "expr": "rate(jvm_gc_pause_milliseconds_count[5m])",
           "legendFormat": "{{service}} - {{action}} {{cause}}",
+          "range": true,
           "refId": "A"
         }
       ],
@@ -1524,7 +1531,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 67
+        "y": 55
       },
       "id": 21,
       "panels": [],
@@ -1593,7 +1600,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 68
+        "y": 56
       },
       "id": 22,
       "options": {
@@ -1620,8 +1627,8 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "process_memory_usage_bytes{service=\"chat-server\"}",
-          "legendFormat": "chat-server Memory Usage",
+          "expr": "process_memory_usage_bytes",
+          "legendFormat": "{{service}} Memory Usage",
           "range": true,
           "refId": "A"
         },
@@ -1631,14 +1638,14 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "dotnet_gc_heap_allocated_bytes_total{service=\"chat-server\"}",
+          "expr": "dotnet_gc_heap_allocated_bytes_total",
           "hide": false,
-          "legendFormat": "chat-server GC Heap Allocated Bytes",
+          "legendFormat": "{{service}} GC Heap Allocated Bytes",
           "range": true,
           "refId": "B"
         }
       ],
-      "title": "chat-server Memory Usage",
+      "title": "ASP.NET Core Memory Usage",
       "type": "timeseries"
     },
     {
@@ -1713,7 +1720,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 68
+        "y": 56
       },
       "id": 23,
       "options": {
@@ -1739,9 +1746,11 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "process_cpu_seconds_total{service=\"chat-server\"}",
+          "editorMode": "code",
+          "expr": "process_cpu_seconds_total",
           "hide": true,
-          "legendFormat": "chat-server CPU Seconds (total)",
+          "legendFormat": "{{service}} CPU Seconds (total)",
+          "range": true,
           "refId": "A"
         },
         {
@@ -1749,8 +1758,10 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "rate(process_cpu_seconds_total{service=\"chat-server\"}[1m])",
-          "legendFormat": "chat-server CPU Usage",
+          "editorMode": "code",
+          "expr": "rate(process_cpu_seconds_total[1m])",
+          "legendFormat": "{{service}} CPU Usage",
+          "range": true,
           "refId": "B"
         }
       ],
@@ -1819,7 +1830,7 @@
         "h": 9,
         "w": 12,
         "x": 0,
-        "y": 76
+        "y": 64
       },
       "id": 24,
       "options": {
@@ -1845,8 +1856,8 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "process_thread_count{service=\"chat-server\"}",
-          "legendFormat": "chat-server Threads",
+          "expr": "process_thread_count",
+          "legendFormat": "{{service}} Threads",
           "range": true,
           "refId": "A"
         },
@@ -1856,8 +1867,8 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "dotnet_thread_pool_thread_count_total{service=\"chat-server\"}",
-          "legendFormat": "chat-server ThreadPool Threads",
+          "expr": "dotnet_thread_pool_thread_count_total",
+          "legendFormat": "{{service}} ThreadPool Threads",
           "range": true,
           "refId": "B"
         }
@@ -1927,7 +1938,7 @@
         "h": 9,
         "w": 12,
         "x": 12,
-        "y": 76
+        "y": 64
       },
       "id": 25,
       "options": {
@@ -1953,8 +1964,8 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "rate(dotnet_gc_collections_total{service=\"chat-server\"}[5m])",
-          "legendFormat": "chat-server GC - {{gc_heap_generation}}",
+          "expr": "rate(dotnet_gc_collections_total[5m])",
+          "legendFormat": "{{service}} GC - {{gc_heap_generation}}",
           "range": true,
           "refId": "A"
         }
@@ -1968,7 +1979,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 85
+        "y": 73
       },
       "id": 26,
       "panels": [],
@@ -1988,7 +1999,7 @@
         "h": 10,
         "w": 24,
         "x": 0,
-        "y": 86
+        "y": 74
       },
       "id": 27,
       "options": {
@@ -2013,12 +2024,12 @@
           },
           "direction": "backward",
           "editorMode": "code",
-          "expr": "{service_name=~\"$service\"}",
+          "expr": "{service_name=\"queue-manager\"}",
           "queryType": "range",
           "refId": "A"
         }
       ],
-      "title": "Application Logs",
+      "title": "queue-manager Logs",
       "type": "logs"
     },
     {
@@ -2027,7 +2038,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 96
+        "y": 84
       },
       "id": 100,
       "panels": [],
@@ -2070,7 +2081,7 @@
         "h": 4,
         "w": 6,
         "x": 0,
-        "y": 97
+        "y": 85
       },
       "id": 101,
       "options": {
@@ -2132,7 +2143,7 @@
         "h": 4,
         "w": 6,
         "x": 6,
-        "y": 97
+        "y": 85
       },
       "id": 102,
       "options": {
@@ -2194,7 +2205,7 @@
         "h": 4,
         "w": 6,
         "x": 12,
-        "y": 97
+        "y": 85
       },
       "id": 103,
       "options": {
@@ -2266,7 +2277,7 @@
         "h": 4,
         "w": 6,
         "x": 18,
-        "y": 97
+        "y": 85
       },
       "id": 104,
       "options": {
@@ -2311,19 +2322,46 @@
             "mode": "palette-classic"
           },
           "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
             "drawStyle": "line",
             "fillOpacity": 10,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
             "lineWidth": 1,
             "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
             "showPoints": "never",
-            "spanNulls": false
+            "showValues": false,
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
           },
           "mappings": [],
           "thresholds": {
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": 0
               }
             ]
           },
@@ -2335,7 +2373,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 101
+        "y": 89
       },
       "id": 105,
       "options": {
@@ -2349,10 +2387,12 @@
           "showLegend": true
         },
         "tooltip": {
+          "hideZeros": false,
           "mode": "multi",
           "sort": "desc"
         }
       },
+      "pluginVersion": "12.3.0",
       "targets": [
         {
           "datasource": {
@@ -2396,19 +2436,46 @@
             "mode": "palette-classic"
           },
           "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
             "drawStyle": "line",
             "fillOpacity": 10,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
             "lineWidth": 1,
             "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
             "showPoints": "never",
-            "spanNulls": false
+            "showValues": false,
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
           },
           "mappings": [],
           "thresholds": {
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": 0
               }
             ]
           },
@@ -2420,7 +2487,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 101
+        "y": 89
       },
       "id": 106,
       "options": {
@@ -2434,10 +2501,12 @@
           "showLegend": true
         },
         "tooltip": {
+          "hideZeros": false,
           "mode": "multi",
           "sort": "desc"
         }
       },
+      "pluginVersion": "12.3.0",
       "targets": [
         {
           "datasource": {
@@ -2508,5 +2577,5 @@
   "timezone": "browser",
   "title": "Queue Server Overview",
   "uid": "queue-server-overview",
-  "version": 5
+  "version": 7
 }
