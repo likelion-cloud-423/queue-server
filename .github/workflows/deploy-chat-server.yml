@@ -5,7 +5,7 @@ on:
     branches:
       - main
     paths:
-      - "chat-server/**"
+      - "chat/**"
   workflow_dispatch:
 
 env:
@@ -48,8 +48,8 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           builder: ${{ steps.buildx.outputs.name }}
-          context: chat-server
-          file: chat-server/Dockerfile
+          context: chat
+          file: chat/LikeLionChat.Server/Dockerfile
           push: true
           platforms: linux/amd64,linux/arm64
           tags: |

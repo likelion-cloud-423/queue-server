@@ -13,6 +13,8 @@ FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
 COPY ["LikeLionChat.Server/LikeLionChat.Server.csproj", "LikeLionChat.Server/"]
+COPY ["LikeLionChat.Shared/LikeLionChat.Shared.csproj", "LikeLionChat.Shared/"]
+COPY ["LikeLionChat.ServiceDefaults/LikeLionChat.ServiceDefaults.csproj", "LikeLionChat.ServiceDefaults/"]
 RUN dotnet restore "./LikeLionChat.Server/LikeLionChat.Server.csproj"
 COPY . .
 WORKDIR "/src/LikeLionChat.Server"

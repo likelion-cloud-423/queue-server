@@ -59,13 +59,15 @@ services:
     container_name: chat-server
     image: chat-server:dev
     build:
-      context: ./chat-server
-      dockerfile: Dockerfile
+      context: ./chat
+      dockerfile: LikeLionChat.Server/Dockerfile
     environment:
       ConnectionStrings__Valkey: "valkey:6379"
       ASPNETCORE_ENVIRONMENT: "Development"
       OTEL_EXPORTER_OTLP_ENDPOINT: http://alloy:4317
       OTEL_SERVICE_NAME: chat-server
+      ChatServer__SoftCap: 100
+      ChatServer__MaxCap: 120
     depends_on:
       alloy:
         condition: service_started

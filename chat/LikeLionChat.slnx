@@ -1,4 +1,7 @@
 <Solution>
+  <Folder Name="/Items/">
+    <File Path="../docker-compose.yaml" />
+  </Folder>
   <Project Path="LikeLionChat.AppHost/LikeLionChat.AppHost.csproj" />
   <Project Path="LikeLionChat.Client/LikeLionChat.Client.csproj" Id="d24e6ec0-c1a8-4aa0-9626-9a654c3ce91a" />
   <Project Path="LikeLionChat.Server/LikeLionChat.Server.csproj" />
