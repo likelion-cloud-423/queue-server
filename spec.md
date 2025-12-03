@@ -393,15 +393,15 @@ ZREM queue:waiting {userId}
 flowchart TD
     A[WebSocket 연결 요청] --> B{ticketId 존재?}
     B -->|No| C[401 Unauthorized]
-    B -->|Yes| D[HGETALL queue:joining:{ticketId}]
+    B -->|Yes| D["HGETALL queue:joining:{ticketId}"]
     D --> E{티켓 유효?}
     E -->|No| F[401 Invalid Ticket]
     E -->|Yes| G{중복 접속?}
     G -->|Yes| H[409 Duplicate Connection]
     G -->|No| I[WebSocket Accept]
     I --> J[HINCRBY server:status current_users 1]
-    J --> K[DEL queue:joining:{ticketId}]
-    K --> L[ZREM queue:joining:tickets {ticketId}]
+    J --> K["DEL queue:joining:{ticketId}"]
+    K --> L["ZREM queue:joining:tickets {ticketId}"]
     L --> M[세션 등록 완료]
 ```
 

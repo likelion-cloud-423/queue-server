@@ -6,8 +6,8 @@
 
 - **queue-api**: 대기열 API 서버 (Spring Boot)
 - **queue-manager**: 대기열 관리 서버 (Spring Boot)
-- **chat-server**: 채팅 서버 (.NET)
-- **chat-client**: 채팅 클라이언트 (Node.js)
+- **chat-server**: 채팅 서버 (.NET) - `chat/LikeLionChat.Server`
+- **chat-client**: 채팅 클라이언트 (.NET WinForms) - `chat/LikeLionChat.Client`
 
 자세한 기술 명세는 [spec.md](./spec.md)를 참조하세요.
 
@@ -43,7 +43,7 @@ cd queue
 ### Chat Server (.NET)
 
 ```bash
-cd chat-server
+cd chat/LikeLionChat.Server
 dotnet build
 ```
 
@@ -57,7 +57,7 @@ docker build -t queue-api:dev -f queue/queue-api/Dockerfile queue/
 docker build -t queue-manager:dev -f queue/queue-manager/Dockerfile queue/
 
 # chat-server
-docker build -t chat-server:dev -f chat-server/Dockerfile chat-server/
+docker build -t chat-server:dev -f chat/LikeLionChat.Server/Dockerfile chat/
 ```
 
 ## 프로덕션 배포
@@ -141,16 +141,16 @@ Grafana에서 다음 대시보드를 확인할 수 있습니다:
 ### 부하 테스트 (k6)
 
 ```bash
-cd k6
-k6 run load-test.js
+k6 run k6/chat-flow.js --vus 10 --duration 2m
 ```
+
+자세한 옵션은 [k6/README.md](./k6/README.md)를 참조하세요.
 
 ### 채팅 클라이언트 테스트
 
 ```bash
-cd chat-client
-npm install
-npm start
+cd chat/LikeLionChat.Client
+dotnet run
 ```
 
 ## 환경 변수
