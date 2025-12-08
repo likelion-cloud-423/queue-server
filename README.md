@@ -11,6 +11,10 @@
 
 자세한 기술 명세는 [spec.md](./spec.md)를 참조하세요.
 
+## 시연 영상
+
+[![시연 영상l](http://img.youtube.com/vi/VMT_kTm07Ew/0.jpg)](https://youtu.be/VMT_kTm07Ew)
+
 ## 로컬 개발 환경
 
 ### Docker Compose로 실행
@@ -177,3 +181,4 @@ dotnet run
 ## 라이센스
 
 MIT License
+
