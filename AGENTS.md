@@ -35,9 +35,9 @@ PR checklist:
 
 Commit message examples:
 
-- `feat(auth): add JWT refresh token support`
-- `fix(api): correct user info serialization`
-- `chore(deps): bump gradle wrapper`
+- `Add JWT refresh token support`
+- `Fix correct user info serialization`
+- `Bump gradle wrapper`
 
 ## Code Writing and Change Rules
 
